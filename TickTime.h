@@ -40,7 +40,7 @@
 *********************************************************************
 * File Description:
 *
-*  This file provides access to all of the time managment functions
+*  This file provides access to all of the time management functions
 *   as well as calculating the timer scaling settings required for
 *   accurate symbol time measurement
 *
@@ -67,7 +67,7 @@
 
 /************************ DEFINITIONS ******************************/
 
-#if defined(__18CXX)
+#if defined(CPUF18K)
     /* this section is based on the Timer 0 module of the PIC18 family */
 
 //   Prescaler is now calculated from clock MHz in the init routine - which assumes clock is an exact number of MHz
@@ -140,7 +140,7 @@
     #define SYMBOLS_TO_TICKS(a) (((DWORD)(INSTR_FREQ/100000) * a) / (SYMBOL_TO_TICK_RATE / 100000))
     #define TICKS_TO_SYMBOLS(a) (((DWORD)SYMBOL_TO_TICK_RATE/100000) * a / ((DWORD)CLOCK_FREQ/100000))
 #else
-    #error "Unsupported processor.  New timing definitions required for proper operation"
+    //#error "Unsupported processor.  New timing definitions required for proper operation"
 #endif
 
 #define HUNDRED_MICRO_SECOND 6                      // 6 ticks is 96us - approx 100us as close as possible with 16uS resolution

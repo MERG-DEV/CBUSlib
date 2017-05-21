@@ -128,6 +128,7 @@ Version history:
 #define MTYP_CANRFID8    44     // multi-channel RFID reader
 #define MTYP_CANmchRFID  45     // either a 2ch or 8ch RFID reader
 #define MTYP_CANPiWi     46     // a Raspberry Pi based module for WiFi
+#define MTYP_CAN4DC      47     // DC Throttle
 
 #define MTYP_CAN_SW      0xFF   // Software nodes
 #define MTYP_EMPTY       0xFE   // Empty module, bootloader only

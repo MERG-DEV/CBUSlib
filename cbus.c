@@ -49,16 +49,16 @@
 #include "can18.h"
 
 
-#include <GenericTypeDefs.h>
+#include "GenericTypeDefs.h"
 #include "cbus.h"
-#include <romops.h>
-#include <EEPROM.h>
+#include "romops.h"
+#include "EEPROM.h"
 
 WORD    nodeID;
 BYTE    cbusMsg[pktsize]; // Global buffer for fast access to CBUS packets - do NOT use in ISRs as would not be re-entrant
-
+#ifndef __XC8__
 #pragma code APP
-
+#endif
 
 // Initialise CBUS  - Note: CANID only used when bus type is CAN
 
@@ -66,7 +66,7 @@ void cbusInit( WORD initNodeID  )
 {
     initTicker();  // Background ticker used for time delays
 
-    nodeID = ee_read_short( EE_NODE_ID );
+    nodeID = ee_read_short( (WORD)EE_NODE_ID );
 
     if (nodeID == 0xFFFF)
         nodeID = initNodeID; // Use default if uninitialised
@@ -105,7 +105,7 @@ BOOL cbusMsgReceived( BYTE cbusNum, BYTE *msg )
         // Put Miwi receive stuff in here
     }
 #endif
-
+    return FALSE;
 }
 
 /*
@@ -120,7 +120,8 @@ void cbusSendSingleOpc(BYTE cbusNum, BYTE opc )
 
 
 /*
- * Send opcode plus our node number, can be usd to send simple 3-byte frame, or may have further bytes prepared in the buffer by the caller
+ * Send opcode plus our node number, can be used to send simple 3-byte frame, or may have further 
+ * bytes prepared in the buffer by the caller
  */
 void cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
 {
@@ -130,7 +131,8 @@ void cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
 
 
 /*
- * Send opcode plus specified node number, can be usd to send simple 3-byte frame, or may have further bytes prepared in the buffer by the caller
+ * Send opcode plus specified node number, can be used to send simple 3-byte frame, or may have further 
+ * bytes prepared in the buffer by the caller
  */
 void cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD nodeID, BYTE *msg)
 {
@@ -185,7 +187,7 @@ void cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL on
 
     #if defined(CBUS_OVER_CAN)
         if ((cbusNum == CBUS_OVER_CAN) || (cbusNum == 0xFF) )
-            canQueueRx( msg );      // Queue event into receive buffer so module can be taugjt its own events
+            canQueueRx( (CanPacket*)msg );      // Queue event into receive buffer so module can be taught its own events
 
     #endif
 
@@ -256,7 +258,7 @@ void cbusSendDataEvent(BYTE cbusNum, WORD nodeID, BYTE *debug_data )
 
     #if defined(CBUS_OVER_CAN)
         if ((cbusNum == CBUS_OVER_CAN) || (cbusNum == 0xFF) )
-            canQueueRx( msg );      // Queue event into receive buffer so module can be taugjt its own events
+            canQueueRx((CanPacket*) msg );      // Queue event into receive buffer so module can be taugjt its own events
 
     #endif
 }

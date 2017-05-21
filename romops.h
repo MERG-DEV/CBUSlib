@@ -48,8 +48,7 @@
 */
 
 #include "devincs.h"
-#include "EEPROM.h"
-#include <GenericTypeDefs.h>
+#include "GenericTypeDefs.h"
 
 // Bit definitions for EEPROM flags
 
@@ -64,9 +63,10 @@
 
 
 // Definitions for inline assembler
-
+#ifdef __C18__
 #define W   0
 #define F   1
+#endif 
 
 // Structure for tracking Flash operations
 
@@ -87,13 +87,13 @@ typedef union
 
 
 void initRomOps(void);
-void writeFlashByte( WORD flashAddr, BYTE flashData );
-void writeFlashImage(WORD addr, BYTE data);
+void writeFlashByte( BYTE * flashAddr, BYTE flashData );
+void writeFlashImage(BYTE * addr, BYTE data);
 #define setFlashByte( a, b )    writeFlashImage( a, b)
-void setFlashWord( WORD flashAddr, WORD flashData );
-void setFlashBuffer( WORD flashAddr, BYTE *bufferaddr, BYTE bufferSize );
-void flushFlashImage( void );
-
+void setFlashWord( WORD * flashAddr, WORD flashData );
+void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize );
+void flushFlashImage( void );;
+BYTE readFlashBlock(WORD flashAddr);
 
 BYTE ee_read(WORD addr);
 void ee_write(WORD addr, BYTE data);

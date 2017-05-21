@@ -1,16 +1,13 @@
-#ifndef __STATUSLEDS_H
-#define __STATUSLEDS_H
-
 /*
 
  Copyright (C) Pete Brownlow 2014-2017   software@upsys.co.uk
 
-CBUS Status LEDs - Definitions for the SLiM and FLiM status LEDs
+  CBUS CANPanel - Hardware settings for CANPanel module
 
- This code is for a standard CBUS module that has a yellow and green LED
- 
+ This code is for a CANPanel CBUS module, to control up to 64 LEDs (or 8 x 7 segment displays)
+ and up to 64 push buttons or on/off switches
 
-  This work is licensed under the:
+ This work is licensed under the:
       Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
    To view a copy of this license, visit:
       http://creativecommons.org/licenses/by-nc-sa/4.0/
@@ -46,30 +43,65 @@ CBUS Status LEDs - Definitions for the SLiM and FLiM status LEDs
           IDE or text editor to the same settings.
 ******************************************************************************************************
 	
- For library version number and revision history see CBUSLib.h
+ For version number and revision history see CANPanel.h
 
 */
+#ifndef HWSETTINGS_H
+#define	HWSETTINGS_H
 
+#ifdef	__cplusplus
+extern "C" {
+#endif
+
+#include "devincs.h"
 #include "GenericTypeDefs.h"
-#include "TickTime.h"
-#include "hwsettings.h"
 
-#define SLOW_FLASH_TIME HALF_SECOND     // On time for a slow flash
-#define FAST_FLASH_TIME HALF_SECOND/3   // On time for a fast flash - 3 times as fast as slow flash
+// Control bit defintions
 
-enum FlashStates {
-    flNone=0,	// No flashing
-    flFLiMSlow,	// SLow flash of FLiM LED
-    flFLiMFast  // Fast flash of FLiM LED
-};
+#ifdef __18CXX
+    #define INTEN               INTCONbits.GIEH
+#endif
 
-void initStatusLeds(void);
-void setSLiMLed(void);
-void setFLiMLed(void);
-void setStatusLed( BOOL FLiMLED );
-void startFLiMFlash( BOOL fast );
-void doFLiMFlash(void);
-void checkFlashing(void);
+    /*
+     * Module specific hardware definitions. Clock speeds and LED ports.
+     */
+// FLiM Pushbutton and status LEDs
+/*
+ * These definitions are required by the FLiM library code
+ */
+#define FLiM_SW         PORTAbits.RA2
+#define LED1Y           LATBbits.LATB6  // Yellow LED
+#define LED2G           LATBbits.LATB7  // Green LED
+#define TRIS_LED1Y      TRISBbits.TRISB6
+#define TRIS_LED2G      TRISBbits.TRISB7
+
+#define LED_ON          1               // LEDs are active high
+#define LED_OFF         0
+    
+    
+// Macros for clock frequencies
+
+extern BYTE clkMHz;
+
+#define GetSystemClock()               (clkMHz * 1000000ul)
+
+#define GetInstructionClock()          (GetSystemClock()/4)     // For PIC18 there are 4 clock cycles per instruction
+#define GetPeripheralClock()           (GetSystemClock()/4)     // For PIC18 peripheral clock is same as instruction clock
+
+#define GetSystemMHz()                 clkMHz
+#define GetInstructionMHz()            clkMHz
 
 
-#endif	// __STATUSLEDS_H
+
+// Global routine definitions
+
+void setclkMHz( void );
+
+
+
+#ifdef	__cplusplus
+}
+#endif
+
+#endif	/* HWSETTINGS_H */
+

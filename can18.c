@@ -43,26 +43,27 @@
  For library version number and revision history see CBUSLib.h
 
 */
+#include "GenericTypeDefs.h"
 #include "romops.h"
 #include "EEPROM.h"
 
 
 // The parameters passed include a bus number to support hardware with multiple interfaces,
-// this version does not implemet multiple interfaces and ignores the busNum parameter
+// this version does not implement multiple interfaces and ignores the busNum parameter
 
 
-#include <can18.h>
+#include "can18.h"
 #include <string.h>
-
+#ifdef __C18__
 #pragma udata CANTX_FIFO
-
 far CanPacket canTxFifo[CANTX_FIFO_LEN];
-
 #pragma udata CANRX_FIFO
-
 far CanPacket canRxFifo[CANRX_FIFO_LEN];
-
 #pragma udata
+#else
+CanPacket canTxFifo[CANTX_FIFO_LEN];
+CanPacket canRxFifo[CANRX_FIFO_LEN];
+#endif
 
 BYTE txIndexNextFree;
 BYTE txIndexNextUsed;
@@ -126,10 +127,10 @@ void canInit(BYTE busNum, BYTE initCanID) {
   while (CANSTATbits.OPMODE2 == 0);
 
   /*
-   * The CAN buad rate pre-scaler is preset by the bootloader, so this code is written to be clock speed independant.
+   * The CAN baud rate pre-scaler is preset by the bootloader, so this code is written to be clock speed independent.
    * The global variable clkMHz is set by reading in CAN prescaler value from BRGCON or CiCFG for use by any other routines
-   * that need to know the clock speed. Note that on the PIC32 the Perhiperal bus prescaler setting will also need to be taken
-   * into accounte when configurig time related values for perhiperals that use pbclk.
+   * that need to know the clock speed. Note that on the PIC32 the Peripheral bus prescaler setting will also need to be taken
+   * into accounts when configuring time related values for peripherals that use pbclk.
    */
 
 #ifdef __C32__
@@ -138,7 +139,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
 
 #else
 
-    ECANCON   = 0b10110000;   // ECAN mode 2 with FIFO, FIFOWM = 1 (int when four spaces left), init to first RX buffer
+    ECANCON   = 0b10110000;   // ECAN mode 2 with FIFO, FIFOWM = 1 (init when four spaces left), init to first RX buffer
     BSEL0     = 0;            // Use all 8 buffers for receive FIFO, as they do not work as a FIFO for transmit
 
     #ifdef CPUF18F
@@ -160,10 +161,10 @@ void canInit(BYTE busNum, BYTE initCanID) {
    * So, for 125kbits/s, bit time = 8us, we need Tq = 500ns
    * To get 500nS, we set the CAN bit rate prescaler, in BRGCON1, to half the FOsc clock rate.
    * For example, 16MHz oscillator using PLL, Fosc is 64MHz, Tosc is 15.625nS, so we use prescaler of 1:32 to give Tq of 500nS  (15.625 x 32)
-   * Having set Tq to 500nS, all other CAN timings are relative to Tq, so do not need chainging with processor clock speed
+   * Having set Tq to 500nS, all other CAN timings are relative to Tq, so do not need changing with processor clock speed
    */
 
-  // BRGCON values used are as follows, now preset in the bootloader to make this routine clock speed independant:
+  // BRGCON values used are as follows, now preset in the bootloader to make this routine clock speed independent:
     
   //BRGCON1 = 0b00000011; // 4MHz resonator + PLL = 16MHz clock (or 16MHz resonator no PLL)
   //BRGCON1 = 0b00000111; // 8MHz resonator + PLL = 32MHz clock`
@@ -241,15 +242,15 @@ void canInit(BYTE busNum, BYTE initCanID) {
 
   if (initCanID == 0)
   {
-      canID = ee_read( EE_CAN_ID );
+      canID = ee_read( (WORD)EE_CAN_ID );
 
-      if (canID == 0xFFFF)
+      if (canID == 0xFF)
           canID = DEFAULT_CANID;
   }
   else // use value passed to this routine
   {
       canID = initCanID;
-      ee_write(EE_CAN_ID, canID);
+      ee_write((WORD)EE_CAN_ID, canID);
   }
 
   // Preload TXB0 with parameters ready for sending CBUS data packets
@@ -264,7 +265,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
   // Preload TXB1 with RTR frame to initiate self enumeration when required
 
   TXB1CON = 0;
-  TXB1CONbits.TXPRI0 = 0;                           // Set buffer priority, so will be sent before any CBUS data packets but after any enumreration replies
+  TXB1CONbits.TXPRI0 = 0;                           // Set buffer priority, so will be sent before any CBUS data packets but after any enumeration replies
   TXB1CONbits.TXPRI1 = 1;
   TXB1DLC = 0x40;                                   // RTR packet with zero payload
   TXB1SIDH = 0b10110000 | ((canID & 0x78) >>3);     // Set CAN priority and ms 4 bits of can id
@@ -308,7 +309,7 @@ void setNewCanId( BYTE newCanId )
   TXB2SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
   TXB2SIDL = TXB0SIDL;
 
-  ee_write(EE_CAN_ID, newCanId );       // Update saved value
+  ee_write((WORD)EE_CAN_ID, newCanId );       // Update saved value
 }
 
 
@@ -387,7 +388,7 @@ BOOL canTX( CanPacket *msg )
 
   TXBnIE = 1;  // Enable transmit buffer interrupt
  
-  return !fullUp;   // Return true for succesfully submitted for transmission
+  return !fullUp;   // Return true for successfully submitted for transmission
 }
 
 
@@ -403,6 +404,7 @@ BOOL canQueueRx( CanPacket *msg )
     FIFOWMIE = 0;   // Disable high water mark interrupt so nothing will fiddle with FIFO
     insertIntoRxFifo( msg );
     FIFOWMIE = 1;
+    return TRUE;
 }
 
 
@@ -482,7 +484,7 @@ BOOL canbusRecv(CanPacket *msg)
     CanPacket   *ptr;
     BOOL        msgFound;
  
-    FIFOWMIE = 0;  // Disable high watermark interrupt so ISR canot fiddle with FIFOs or enumeration map
+    FIFOWMIE = 0;  // Disable high watermark interrupt so ISR cannot fiddle with FIFOs or enumeration map
 
     processEnumeration();  // Start or finish canid enumeration if required
 
@@ -561,6 +563,7 @@ BOOL insertIntoRxFifo( CanPacket *ptr )
             rxIndexNextFree--;
 
     }
+    return TRUE;
 } // Insert into RX FIFO
 
 
@@ -618,7 +621,6 @@ void canFillRxFifo(void)
 // If enumeration complete, find and set new can id
 
 void processEnumeration(void)
-
 {
     BYTE i, newCanId, enumResult;
 
@@ -661,7 +663,6 @@ void processEnumeration(void)
 // Returns TRUE if packet is to be processed as a CBUS message
 
 BOOL checkIncomingPacket(CanPacket *ptr)
-
 {
     BYTE        incomingCanId;
     BOOL        msgFound;

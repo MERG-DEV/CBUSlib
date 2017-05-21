@@ -52,10 +52,12 @@
 *  4.2   15/1/15      pnb       Extracted from MLA as a standalone utility (C18 only at present)
 ********************************************************************/
 
+#ifndef __XC8__
 #pragma code APP
-
+#endif
 /************************ HEADERS **********************************/
 //#include "SystemProfile.h"
+#include "devincs.h"
 #include "TickTime.h"
 #include "hwsettings.h"
 //#include "Compiler.h"
@@ -105,7 +107,7 @@ void initTicker()
     for (i=clkMHz;i>0;i>>=1) // Work out timer prescaler value from clock MHz
         divider++;
 
-#if defined(__18CXX)
+#if defined(__18CXX) || defined (CPUF18K)
     TMR_CON = 0b00000000 | divider;     // Enable internal clock, prescaler on and set prescaler value
     TMR_IP = 1;
     TMR_IF = 0;
@@ -157,7 +159,7 @@ DWORD tickGet(void)
 {
     TickValue currentTime;
     
-#if defined(__18CXX)
+#if defined(__18CXX) || defined(CPUF18K)
     //BYTE failureCounter;
     BYTE IntFlag1;
     BYTE IntFlag2;
@@ -199,7 +201,7 @@ DWORD tickGet(void)
         currentTime.byte.b1 = TMR_H;
     } while( currentTime.word.w0 == 0xFFFF && failureCounter++ < 3 );
 
-    //if an interrupt occured after IE = 0, then we need to figure out if it was
+    //if an interrupt occurred after IE = 0, then we need to figure out if it was
     //before or after we read TMR0L
     if(TMR_IF)
     {

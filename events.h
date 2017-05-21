@@ -1,6 +1,7 @@
 #ifndef __EVENTS_H
 #define __EVENTS_H
 
+#include "FLiM.h"
 /*
 
  Copyright (C) Pete Brownlow 2014-2017   software@upsys.co.uk
@@ -47,12 +48,6 @@ events.h - Definitions for CBUS event handling module - Part of CBUS libraries f
 
 */
 
-// #include "cbus.h"
-// #include "romops.h"
-// #include "EEPROM.h"
-
-
-
 // Event data structures are defined in FLiM.h
 
 // EVENT DECODING
@@ -71,14 +66,26 @@ events.h - Definitions for CBUS event handling module - Part of CBUS libraries f
 //  ACON3/ACOF3  1111
 //
 
+#define NO_ACTION   0xff
+#define NO_INDEX    0xff
+#define NO_EVENT    0xff
+
 #define     EVENT_SET_MASK  0b10010000
 #define     EVENT_CLR_MASK  0b00000110
 #define     EVENT_ON_MASK   0b00000001
 
 // Function prototypes for event management
 
-void 	eventsInit( void );
-
+//void 	eventsInit( void );
+extern void clearAllEvents(void);
+extern void clearAction2Event(void);
+extern void clearChainTable(void);
+extern void eventsInit(void);
+extern const Event * getProducedEvent(unsigned char action);
+extern BOOL doActions(const Event * e, BYTE * msg);
+extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
+extern void deleteAction(unsigned char action);
+extern void deleteEvent(Event* ev);
 
 
 // Internal functions

@@ -49,11 +49,11 @@
 #define __CANBUS_H
 
 
-#include <devincs.h>
-#include <GenericTypeDefs.h>
+#include "devincs.h"
+#include "GenericTypeDefs.h"
 #include "MoreTypes.h"
 #include "hwsettings.h"
-#include <TickTime.h>
+#include "TickTime.h"
 
 #define DEFAULT_CANID   0x70                        // starting value, likely to be modified by auto conflict resolution
 #define MAX_CANID       0x7F
@@ -72,7 +72,7 @@
 #define CANRX_FIFO_LEN  16
 
 
-// CANSTAT interrupt reason codes - not defined in processor header for somer reason
+// CANSTAT interrupt reason codes - not defined in processor header for some reason
 
 #define IR_TXB0 0x08
 #define IR_ERR  0x02

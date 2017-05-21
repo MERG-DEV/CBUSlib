@@ -1,7 +1,5 @@
-
-
-
-// Modified from Microchip standard version for different load address due to boot loader
+#ifdef __C18
+// Modified from Microchip standard version for different load address due to boot loader 
 
 /* Copyright (c)1999 Microchip Technology */
 
@@ -62,3 +60,4 @@ fill_loop:    movwf   POSTINC1, 0
 
   goto loop;
 }                               /* end _startup() */
+#endif

@@ -52,62 +52,74 @@
     25/2/16     Pete Brownlow   - coding in progress
 
  */
-
+#include "events.h"
+#include "module.h"
 #include "FLiM.h"
-#include "callbacks.h"
+#include <stddef.h>
 
-// Local prototypes
+// forward references
+void clearEvent2Action(void);
+void rebuildHashtable(void);
+unsigned char getHash(WORD nn, WORD en);
 
-void evRemove( BYTE evIndex );
+extern void processEvent(unsigned char action, BYTE * msg);
 
-
-
-#pragma code APP
-#pragma udata
-
-BYTE    prevIndex;   // Index of event entry that links to current one
-
-// eventsInit called during initialisation - initialises event support 
-
-void eventsInit(void)
-
-{
-    //TODO - Can we assume that the uninitialised event table will be set to all 0xFF, ie: all entries free?
-    // If so, then no initialisation action required here, will need to test this
-
-    prevIndex = 0;
-} // eventsInit
+//Events are stored in Flash just below NVs
+/*
+ * The Action to Event table.
+ */
+const Event action2Event[NUM_PRODUCER_ACTIONS] @AT_ACTION2EVENT = {0}; // should initialise entire array to all zeros
 
 
+/*
+ * The Event to Action storage.
+ */
+typedef struct {
+    Event event;
+    BYTE actions[EVperEVT];
+} Event2Action;
+const Event2Action event2Action[NUM_CONSUMED_EVENTS] @AT_EVENT2ACTION;
 
+// The hashtable to find the Event within the event2Action table. Stored in RAM
+BYTE eventChains[HASH_LENGTH][CHAIN_LENGTH];
 
-// Clear all events
-void doNnclr(void)
-{
-    BYTE    evIndex;
+/**
+ * eventsInit called during initialisation - initialises event support.
+ * Called after power up to initialise RAM.
+ */
+void eventsInit( void ) {
+    rebuildHashtable();
+} //eventsInit
 
-	if (flimState == fsFLiMLearn)
-	{
-            for (evIndex=0; evIndex < EVT_NUM; evIndex++)
-                evRemove(evIndex);
-            flushFlashImage();
-     
-            ee_write(EE_EV_COUNT, 0);           // Set event count to zero
-            ee_write(EE_EV_FREE, EVT_NUM - 1);  // and free slots
-
-            cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
-        }
-	else
-	{
+/**
+ * Clear all Events.
+ */
+void doNnclr(void) {
+    if (flimState == fsFLiMLearn) {
+        clearAction2Event();
+        clearEvent2Action();
+        rebuildHashtable();
+    } else {
             cbusMsg[d3] = CMDERR_NOT_LRN;
             cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
  	}
-} // doNnclr
+} //doNnclr
 
-// Read number of available event slots
+/**
+ * Read number of available event slots.
+ * This returned the number of unused slots in the Consumed event Event2Action table.
+ */
 void doNnevn(void)
 {
-    cbusMsg[d3] = ee_read(EE_EV_FREE);
+    //Pete's original code kept a counter in EEPROM but here I count the number
+    // of unused slots.
+    unsigned char count = 0;
+    for (unsigned char i=0; i<NUM_CONSUMED_EVENTS; i++) {
+        if ((event2Action[i].event.NN == NO_EVENT) && (event2Action[i].event.EN == NO_EVENT)) {
+            count++;
+        }
+    }
+    cbusMsg[d3] = count;
     cbusSendOpcMyNN( 0, OPC_EVNLF, cbusMsg );
 } // doNnevn
 
@@ -115,263 +127,407 @@ void doNnevn(void)
 void doNerd(void)
 {
 	//TODO send response OPC_ENRSP (presumably once for each event and EV?  Study FCU interaction with existing modules)
+    // The CBUS spec doesn't seem to cover what do with the produced events - should we return both and fake an Index?
+    unsigned char i;
+    for (i=0; i<NUM_PRODUCER_ACTIONS; i++) {
+        if ((action2Event[i].NN != NO_EVENT) || (action2Event[i].EN != NO_EVENT)) {
+            cbusMsg[d3] = action2Event[i].NN>>8;
+            cbusMsg[d4] = action2Event[i].NN&0xff;
+            cbusMsg[d5] = action2Event[i].EN>>8;
+            cbusMsg[d6] = action2Event[i].EN&0xff;
+            cbusMsg[d7] = i;
+            cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+        }
+    }
+    for (i=0; i<NUM_CONSUMED_EVENTS; i++) {
+        if ((event2Action[i].event.NN != NO_EVENT) || (event2Action[i].event.EN != NO_EVENT)) {
+            //for (unsigned char a=0; a<EVperEvt; a++) {  
+                cbusMsg[d3] = event2Action[i].event.NN>>8;
+                cbusMsg[d4] = event2Action[i].event.NN&0xff;
+                cbusMsg[d5] = event2Action[i].event.EN>>8;
+                cbusMsg[d6] = event2Action[i].event.EN&0xff;
+                cbusMsg[d7] = i;
+                cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+            //}
+        }
+    }
 } // doNerd
 
-// Read number of stored events
+/**
+ * Read number of stored events
+ * This returned the number of unused slots in the Consumed event Event2Action table.
+ */
 void doRqevn(void)
 {
-    cbusMsg[d3] = ee_read(EE_EV_COUNT);
+    //Pete's original code kept a counter in EEPROM but here I count the number
+    // of unused slots.
+    unsigned char count = 0;
+    for (unsigned char i=0; i<NUM_CONSUMED_EVENTS; i++) {
+        if ((event2Action[i].event.NN != NO_EVENT) || (event2Action[i].event.EN != NO_EVENT)) {
+            count++;
+        }
+    }
+    cbusMsg[d3] = count;
     cbusSendOpcMyNN( 0, OPC_NUMEV, cbusMsg );
 } // doRqevn
 
-
-// Unlearn event
+/**
+ * Unlearn event.
+ * @param nodeNumber
+ * @param eventNumber
+ */
 void doEvuln(WORD nodeNumber, WORD eventNumber)
 {
-    // Find event in event table (may be more than one entry)
-    // and remove
-    BYTE    evIndex;
-  
-    if (evIndex = findEvent( nodeNumber, eventNumber, FALSE  ) != 0)
-    {
-        evRemove( evIndex );
-        flushFlashImage();
-        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
+    // need to delete this action from the Produced and Consumed tables
+    // delete from produced first
+    unsigned char a;
+    for (a=0; a<NUM_ACTIONS; a++) {
+        if ((eventNumber == action2Event[a].EN) && (nodeNumber == action2Event[a].NN)) {
+            writeFlashImage((BYTE*)&(action2Event[a].NN), NO_EVENT);
+            writeFlashImage((BYTE*)&(action2Event[a].NN)+1, NO_EVENT);
+            writeFlashImage((BYTE*)&(action2Event[a].EN), NO_EVENT);
+            writeFlashImage((BYTE*)&(action2Event[a].EN)+1, NO_EVENT);
+        }
     }
-
-} // doEvuln
-
-
-// Remove entry from event table (does not flush Flash buffer)
-
-void evRemove( BYTE evIndex )
-
-{
-        BYTE            evNum;
-        EventTableEntry eventCopy;
-
-        // Unlink from event chain
-        if (prevIndex != 0)
-            setFlashByte(&(EVTPtr[prevIndex].event.nextEvent), EVTPtr[evIndex].event.nextEvent);
-
-        eventCopy.event.evtFlags.free = 1;                        // Mark entry in use
-        eventCopy.event.node_id = 0;                              // Set node id for event
-        eventCopy.event.evt_id  = 0;                             // Set event or device number
-
-        for (evNum = 0; evNum < EVperEVT; evNum++)
-            eventCopy.ev[evNum] = 0xFF;                          // Set event variable value
-
-        setFlashBuffer(&(EVTPtr[evIndex]),&eventCopy,sizeof( EventTableEntry));
+    
+    // now delete from consumed
+    unsigned char evtIdx;
+    for (evtIdx=0; evtIdx<NUM_CONSUMED_EVENTS; evtIdx++) {
+        if ((eventNumber == event2Action[evtIdx].event.EN) && (nodeNumber == event2Action[evtIdx].event.NN)) {
+            writeFlashImage((BYTE*)&(event2Action[evtIdx].event.NN), NO_EVENT);
+            writeFlashImage((BYTE*)&(event2Action[evtIdx].event.NN)+1, NO_EVENT);
+            writeFlashImage((BYTE*)&(event2Action[evtIdx].event.EN), NO_EVENT);
+            writeFlashImage((BYTE*)&(event2Action[evtIdx].event.EN)+1, NO_EVENT);
+            for (a=0; a<EVperEVT; a++) {
+                writeFlashImage((BYTE*)&(event2Action[evtIdx].actions[a]), NO_ACTION);
+            }
+            // easier to rebuild from scratch
+            rebuildHashtable();
+            return;
+        }
+    }
+    flushFlashImage();
 }
 
-// Read an event variable by index
+/**
+ *  Read an event variable by index.
+ * Again not clear what the CBUS spec actually needs here as the Index is implementation
+ * specific and doesn't really apply in my implementation using 2 tables.
+ */
 void doReval(void)
 {
 	// Get event index and event variable number from message
 	// Send response with EV value
-        //TODO - can the index be the hash table index, which would mean that not all indices in sequqnce are used?
+        //TODO - can the index be the hash table index, which would mean that not all indices in sequence are used?
         //TODO Is this used by FCU at present? If so what does it expect?
         //TODO Study FCU interaction with existing modules
-} // doReval
-
-
-// Read an event variable by event id
-void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
-{
-    BYTE evIndex;
-
-        // Get event by event id and event variable number from message
-	// Send EVANS response with EV value,
-
-    if (evIndex = findEvent( nodeNumber, eventNumber, FALSE  ) != 0)
-    {
-        cbusMsg[d3] = eventNumber >> 8;
-        cbusMsg[d4] = eventNumber & 0x00FF;
-        cbusMsg[d5] = evNum;
-        cbusMsg[d6] = EVTPtr[evIndex].ev[evNum];
-
-        cbusSendOpcNN(0 , OPC_EVANS, nodeNumber, cbusMsg);
-    }
-    else
-    {
+    unsigned char idx = cbusMsg[d3];
+    unsigned char action = cbusMsg[d4];
+    if (idx < NUM_CONSUMED_EVENTS) {
+        cbusMsg[5] = event2Action[idx].actions[action];
+        cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
+    } else {
         cbusMsg[d3] = CMDERR_INVALID_EVENT;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
     }
-} // doReqev
+} // doReval
 
 
-// Teach event whilst in learn mode
-void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal )
+/**
+ * Read an event variable by event id.
+ * TODO Again not quite sure what to do here as there can be multiple EVs as a result.
+ * TODO Also this only checks the Consumed events and not the Produced events.
+ * @param nodeNumber
+ * @param eventNumber
+ * @param evNum
+ */
+void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
 {
-    BYTE            evIndex;
-    EventTableEntry eventCopy;
-   
-
-    if (evIndex = findEvent( nodeNumber, eventNumber, TRUE  ) != 0)
-    {
-        // Cannot write directly to this structure as it is stored
-        // in flash, so take a copy, modify it, then write back to flash
-
-        // For a structure with a number of bytes, this is more efficient than writing each byte to flash individually
-
-        memcpy( &eventCopy, &(EVTPtr[evIndex]), sizeof( EventTableEntry));
-
-        eventCopy.event.evtFlags.free = 0;                        // Mark entry in use
-        eventCopy.event.node_id = nodeNumber;                     // Set node id for event
-        eventCopy.event.evt_id  = eventNumber;                    // Set event or device number
-        eventCopy.ev[evNum] = evVal;                             // Set event variable value
-
-        setFlashBuffer(&(EVTPtr[evIndex]),&eventCopy,sizeof( EventTableEntry));
-        flushFlashImage();
-        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
-    }
-} // doEvlrn
-
-
-// Teach event whilst in learn mode by index
-// void doEvlrni(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal)
-//{
-	// Need to be in learn mode - index cannot be hash table entry, because it might not hash to that index
-        // This implementation just hahses the node number and event number and  ignores the index - so the learn event with and without index are the same
-        // So doEvlrn is called for both EVLRN AND EVLRNI opcodes and this routine is left commented out for the time being.
-        // TODO Study FCU interaction with existing modules and see if this opcode used
-
-//} // doEvlrni
-
-
-
-// Search the event table for the specified event, return the index,
-// optionally create new entry, return zero if not found or if table full when trying to create
-// Sets prevIndex to index of event that links to returned one
-
-BYTE findEvent( WORD eventNode, WORD eventNum, BOOL createEntry  )
-{
-    BYTE    eventIndex;
-    BYTE    searchCount;
-    BOOL    notFound;
-
-    prevIndex = 0;
-    eventIndex = eventHash(eventNode & 0xFF, eventNum & 0xFF );
-    
-    while ((!EVTPtr[eventIndex].event.evtFlags.freeEntry) && (notFound = (EVTPtr[eventIndex].event.node_id != eventNode) || (EVTPtr[eventIndex].event.evt_id != eventNum)))
-    {
-        if ((EVTPtr[eventIndex].event.nextEvent) != 0)
-        {
-            prevIndex = eventIndex;
-            eventIndex = EVTPtr[eventIndex].event.nextEvent;
+    // get the event
+    unsigned char hash = getHash(nodeNumber, eventNumber);
+    unsigned char chainIdx;
+ 
+    for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+        unsigned char evtIdx = eventChains[hash][chainIdx];
+        if (evtIdx == NO_INDEX) return;    // no more left to check - no action
+        // need to check in case of hash collision
+        const Event * otherEvent = (const Event*)&(event2Action[evtIdx].event);
+        if ((eventNumber == otherEvent->EN) && (nodeNumber == otherEvent->NN)) {
+            // found the correct consumed event - now get the action
+            cbusMsg[d3] = eventNumber >> 8;
+            cbusMsg[d4] = eventNumber & 0x00FF;
+            cbusMsg[d5] = evNum;
+            cbusMsg[d6] = event2Action[evtIdx].actions[evNum];
+            cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
+            return;
         }
-    }    
-
-    if (notFound && createEntry)
-    {
-        searchCount = 0;
-        prevIndex = eventIndex;
-
-        while (!EVTPtr[++eventIndex].event.evtFlags.freeEntry && (searchCount++ < 0xFF ));
-
-        if (EVTPtr[eventIndex].event.evtFlags.free) // If we can't find a free entry, then the table is full
-        {
-            if ((prevIndex != 0) && (prevIndex != eventIndex))
-            {
-                // EVTPtr[prevIndex].event.nextEvent = eventIndex;                  // Link from previous event on same hash
-                setFlashByte( &(EVTPtr[prevIndex].event.nextEvent), eventIndex );   // write to flash buffer
-            }
-            // EVTPtr[eventIndex].event.evtFlags.freeEntry = FALSE;                 // No longer a free entry, but now set in caller for flash write efficiency
-            notFound = FALSE;
-        }    
     }
-    
-    if (notFound)
-        eventIndex = 0;     // Return 0 if not found, or if could not create due to table full
-    
-    return (eventIndex);    // not found
-   
-} // findEvent
-
-
-
-// The hash table uses an algorithm on the least significant byte of each of the node number and event number.
-
-// If we used just the node number, then all short events would hash to the same number
-// If we used just the event number, then for long events the vast majority would be 1 to 8, so not giving a very good spread.
-
-// The majority of long events will be between 1 and 16, as most modules default to event numbers starting from 1. 
-// To give a good spread of hash values from 1 to 255, the event number is left shifted 3 bits
-
-
-// This algorithm combines the LS 7 bits of the node number with bits 0-3 of the event number, hopefully producing a good spread for layouts with either
-// predominantly short events, long events or a mixture
-
-//  This also means that for layouts using the default FLiM node numbers from 256, we are effectively starting from zero as far as the hash algorithm is concerned.
-
-// Table entry 0 is not used so return 1 if the hash gives a result of 0.
-
-
-// Calculate hash value, this is the index into the hash table
-
-BYTE eventHash( BYTE nodeByte, BYTE eventBYTE )
-{
-    BYTE hashResult;
-
-    hashResult = ( nodeByte & 0x7F ) + ((eventBYTE << 3) & 0x7F );
-    
-    return( (hashResult == 0) ? ++hashResult : hashResult );
-   
+    cbusMsg[d3] = CMDERR_INVALID_EVENT;
+    cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
 }
 
-BOOL parseCbusEvent( BYTE *msg )
-
-{
-    overlay BOOL    cmdProcessed = TRUE;
-    BYTE            eventIndex;
-    BOOL            foundEvent;
-
-
-    if (foundEvent = ((msg[d0] & EVENT_SET_MASK) == EVENT_SET_MASK) && ((msg[d0] & EVENT_CLR_MASK == 0) ))  // Check correct bits in opcode set or clear for an event
-    {
-        if ((eventIndex = findEvent(msg[d1]<<8+msg[d2],msg[d3]<<8+msg[d4], FALSE)) != 0)
-        {
-            processEvent( eventIndex, msg );
+/**
+ * Teach event whilst in learn mode.
+ * Teach or reteach an event associated with an action. This updates either the 
+ * Action2Event (Produced events) table or the Event2Action (Consumed events) table.
+ * If this is a Consumed event then also update the hash table.
+ * @param nodeNumber
+ * @param eventNumber
+ * @param evNum not used
+ * @param evVal the action
+ * @return 
+ */
+void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
+    if (evVal >= NUM_ACTIONS) {
+        cbusMsg[d3] = CMDERR_INV_EV_IDX;
+        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        return;
+    }
+    if (evVal < NUM_PRODUCER_ACTIONS) {
+        // teach a PRODUCED action
+        // Just write the action to the action2Event table
+        writeFlashImage((BYTE*)&action2Event[evVal].NN, nodeNumber & 0xff);
+        writeFlashImage((BYTE*)&action2Event[evVal].NN+1, nodeNumber >> 8);
+        writeFlashImage((BYTE*)&action2Event[evVal].EN, eventNumber & 0xff);
+        writeFlashImage((BYTE*)&action2Event[evVal].EN+1, eventNumber >> 8);
+        flushFlashImage();
+        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
+        return;
+    } else {
+        // teach a CONSUMED action
+        // check it we already have this event
+        unsigned char hash = getHash(nodeNumber, eventNumber);
+        unsigned char chainIdx;
+        for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+            unsigned char evtIdx = eventChains[hash][chainIdx];
+            if (evtIdx == NO_INDEX) {
+                // it isn't in the table
+                // find a slot in the table
+                for (evtIdx=0; evtIdx<NUM_CONSUMED_EVENTS; evtIdx++) {
+                    if ((event2Action[evtIdx].event.NN == NO_EVENT) && (event2Action[evtIdx].event.EN == NO_EVENT)) {
+                        // found a spare slot
+                        eventChains[hash][chainIdx] = evtIdx;
+                        writeFlashImage((BYTE*)&(event2Action[evtIdx].event.NN), nodeNumber & 0xff);
+                        writeFlashImage((BYTE*)&(event2Action[evtIdx].event.NN)+1, nodeNumber >> 8);
+                        writeFlashImage((BYTE*)&(event2Action[evtIdx].event.EN), eventNumber & 0xff);
+                        writeFlashImage((BYTE*)&(event2Action[evtIdx].event.EN)+1, eventNumber >> 8);
+                        writeFlashImage((BYTE*)&(event2Action[evtIdx].actions[0]), evVal);
+                        flushFlashImage();
+                        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
+                        return;
+                    } 
+                }
+                // no slots available
+                cbusSendOpcMyNN( 0, CMDERR_TOO_MANY_EVENTS, cbusMsg);
+                return;
+            }
+            // need to check in case of hash collision
+            const Event * otherEvent = (const Event*)&(event2Action[evtIdx].event);
+            if ((eventNumber == otherEvent->EN) && (nodeNumber == otherEvent->NN)) {
+                // found the correct consumed event - now add this action to the list
+                // look for a spare action space
+                unsigned char a;
+                for (a=0; a<EVperEVT; a++) {
+                    if (event2Action[evtIdx].actions[a] == evVal) {
+                        // already there
+                        //WRACK or CmdErr?
+                        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
+                        return;
+                    }
+                    if (event2Action[evtIdx].actions[a] == NO_ACTION) {
+                        writeFlashByte((BYTE*)&(event2Action[evtIdx].actions[a]), evVal);
+                        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
+                        return;
+                    }
+                }
+                // ERROR = NO EVs left
+                cbusSendOpcMyNN( 0, CMDERR_INV_EV_IDX, cbusMsg);
+                return;
+            }
         }
     }
-    return( foundEvent);
-        
-//    switch(msg[d0])
-//    {
-//        case OPC_ACON:     //
-//            if (thisNN(msg))
-//                break;  // Ignore if for us (already in learn) but drop through to exit learn mode if not addressed to us
-//
-//        case OPC_NNULN:
-//            // Release node from learn mode
-//             flimState = fsFLiM;
-//            break;
-//    }
+}
+
+
+/**
+ * Obtain a hash for the specified Event. 
+ * 
+ * The hash table uses an algorithm of an XOR of all the bytes with appropriate shifts.
+ * 
+ * If we used just the node number, then all short events would hash to the same number
+ * If we used just the event number, then for long events the vast majority would 
+ * be 1 to 8, so not giving a very good spread.
+ *
+ * This algorithm hopefully produces a good spread for layouts with either
+ * predominantly short events, long events or a mixture.
+ * This also means that for layouts using the default FLiM node numbers from 256, 
+ * we are effectively starting from zero as far as the hash algorithm is concerned.
+ * 
+ * @param e the event
+ * @return the hash
+unsigned */
+ char getHash(WORD nn, WORD en) {
+    unsigned char hash;
+    // need to hash the NN and EN to a uniform distribution across HASH_LENGTH
+    hash = nn ^ (nn >> 8);
+    hash = 7*hash + (en ^ (en>>8)); 
+    // ensure it is within bounds of eventChains
+    hash %= HASH_LENGTH;
+    return hash;
+}
+
+
+/**
+ * This Consumes a CBUS event if it has been provisioned.
+ * @param msg
+ * @return 
+ */
+BOOL parseCbusEvent(BYTE * msg) {
+    Event evt;
+    evt.NN = (msg[d1] << 8) + msg[d2];
+    evt.EN = (msg[d3] << 8) + msg[d4];
+    return doActions(&evt, msg);
 } 
 
-// Where an event entry spans more than one event table entry, find the next continuation 
-// Returns index to the new entry if there is a continuation,. or 0 if not
 
-BYTE findEventContinuation(BYTE eventIndex)
-        
-{
-    WORD    eventNode, eventID;
+/**
+ * Clear all the actions' events.
+ */
+void clearAction2Event(void) {
+    unsigned char action;
+    for (action=0; action<NUM_ACTIONS; action++) {
+        writeFlashImage((BYTE*)&action2Event[action].NN, NO_INDEX);
+        writeFlashImage((BYTE*)&action2Event[action].NN+1, NO_INDEX);
+        writeFlashImage((BYTE*)&action2Event[action].EN, NO_INDEX);
+        writeFlashImage((BYTE*)&action2Event[action].EN+1, NO_INDEX);
+    }
+    flushFlashImage();
+}
+
+void clearEvent2Action(void) {
+    unsigned char idx;
+    for (idx=0; idx<NUM_CONSUMED_EVENTS; idx++) {
+        unsigned char j;
+        for (j=0; j<sizeof(Event2Action); j++) {
+            writeFlashByte((BYTE*)&event2Action[idx]+j, NO_ACTION);
+        }
+    }
+}
+/**
+ * Initialise the RAM hash chain for reverse lookup of event to action. Uses the
+ * data from the Flash Event2Action table.
+ */
+void rebuildHashtable(void) {
+    // invalidate the current hash table
+    unsigned char hash;
+    unsigned char idx;
+    clearChainTable();
+    // now scan the event2Action table and populate the hash
+    for (idx=0; idx<NUM_CONSUMED_EVENTS; idx++) {
+        hash = getHash(event2Action[idx].event.NN, event2Action[idx].event.EN);
+        unsigned char chainIdx;
+        for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+            if (eventChains[hash][chainIdx] == NO_INDEX) {
+                // available
+                eventChains[hash][chainIdx] = idx;
+                break;
+            }
+        }
+    }
+}
+
+/**
+ * Clear the RAM hash chain .
+ */
+void clearChainTable(void) {
+    unsigned char h, chainIndex;
+    // First fill the entire chains with NO_INDEX
+    for (h=0; h<HASH_LENGTH; h++) {
+        for (chainIndex=0; chainIndex<CHAIN_LENGTH; chainIndex++) {
+            eventChains[h][chainIndex] = NO_INDEX;
+        }
+    }
+}
+
+
+/**
+ * Get the Produced Event to transmit for the specified action.
+ * @param action
+ * @return the produced event or NULL if none has been provisioned
+ */ 
+const Event * getProducedEvent(unsigned char action) {
+    if (action >= NUM_PRODUCER_ACTIONS)return NULL;    // not a produced valid action
+    const Event * ep = &action2Event[action];
+    if ((ep->EN == 0) && (ep->NN == 0)) return NULL;    // not provisioned
+    return ep; 
+}
+
+
+/**
+ * Perform the actions associated with this consumed event. 
+ * Passes control back to the application to actually process the event.
+ * @param e
+ * @return true if the action was processed
+ */
+BOOL doActions(const Event * e, BYTE* msg) {
+    unsigned char hash = getHash(e->NN, e->EN);
+    unsigned char chainIdx;
+    BOOL processed = FALSE;
+    for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+        unsigned char evtIdx = eventChains[hash][chainIdx];
+        if (evtIdx == NO_INDEX) return processed;    // no more left to check - no action
+        // need to check in case of hash collision
+        const Event * otherEvent = (const Event*)&(event2Action[evtIdx].event);
+        if ((e->EN == otherEvent->EN) && (e->NN == otherEvent->NN)) {
+            // found the correct consumed event - now process the actions
+            unsigned char action;
+            for (action=0; action<EVperEVT; action++) {
+                if (action == NO_ACTION) return processed;    // done all the actions
+                processEvent(action, msg);      // found it
+                processed = TRUE;
+            }
+        }
+    }
+    return processed;
+}
+
+
+
+/**
+ * Delete an action.
+ * @param action
+ */
+void deleteAction(unsigned char action) {
+    // need to delete this action from the Produced and Consumed tables
+    // delete from produced first
+    writeFlashImage((BYTE*)&(action2Event[action].NN), NO_EVENT);
+    writeFlashImage((BYTE*)&(action2Event[action].NN)+1, NO_EVENT);
+    writeFlashImage((BYTE*)&(action2Event[action].EN), NO_EVENT);
+    writeFlashImage((BYTE*)&(action2Event[action].EN)+1, NO_EVENT);
     
-    if (EVTPtr[eventIndex].event.evtFlags.conctinues)
-    {
-        eventNode = EVTPtr[eventIndex].event.node_id;
-        eventID = EVTPtr[eventIndex].event.evt_id;
-        
-        eventIndex = EVTPtr[eventIndex].event.nextEvent;
-        
-        while ((eventIndex != 0) && ((EVTPtr[eventIndex].event.node_id != eventNode) || (EVTPtr[eventIndex].event.evt_id != eventID)))
-           eventIndex = EVTPtr[eventIndex].event.nextEvent;
-    }    
-    else 
-        eventIndex = 0;
-    
-    return eventIndex;
-}        
+    // now delete from consumed
+    unsigned char evtIdx;
+    for (evtIdx=0; evtIdx<NUM_CONSUMED_EVENTS; evtIdx++) {
+        unsigned char a;
+        for (a=0; a<EVperEVT; a++) {
+            if (event2Action[evtIdx].actions[a] == action) {
+                // shift the actions along - could be made more efficient by checking if we have reached a NO_ACTIO
+                for (unsigned char aa = a; aa <EVperEVT-1; aa++) {
+                    writeFlashImage((BYTE*)&(event2Action[evtIdx].actions[aa]), event2Action[evtIdx].actions[aa+1]);
+                }
+                writeFlashImage((BYTE*)&(event2Action[evtIdx].actions[EVperEVT-1]), NO_ACTION);
+            }
+        }
+        // if the first (and hence all actions) is NO_ACTION then delete the entry entirely
+        if (event2Action[evtIdx].actions[0] == NO_ACTION) {
+            setFlashWord((WORD*)&event2Action[evtIdx].event.NN, NO_EVENT);
+            setFlashWord((WORD*)&event2Action[evtIdx].event.EN, NO_EVENT);
+        }
+    }
+    flushFlashImage();
+    // easier to rebuild from scratch
+    rebuildHashtable();
+}
 
 
 

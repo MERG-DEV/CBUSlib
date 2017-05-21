@@ -46,49 +46,72 @@
  For library version number and revision history see CBUSLib.h
 
 */
-
-#include <romops.h>
+/**
+ * Flash routines hide the complexity of erasing and writing in pages.
+ * A buffer is kept of the current page being changed and then writing it back
+ * in a single operation. This reduces the number of writes to each page of flash
+ * and extending its life.
+ */
+#include <xc.h>
+#include "romops.h"
+#include "EEPROM.h"
 
 //#pragma romdata BOOTFLAG
 //rom BYTE bootflag = 0;
 
+#ifndef __XC8__
 #pragma udata MAIN_VARS
+#endif
 
 FlashFlags  flashFlags;
-BYTE        flashbuf[64];
+BYTE        flashbuf[_FLASH_WRITE_SIZE];    // Assumes that Erase and Write are the same size
 BYTE        flashidx;
-WORD        flashblock;     //address of current 64 byte flash block
+WORD        flashblock;                     //address of current 64 byte flash block
 
+#ifndef __XC8__
 #pragma code APP
+#endif
 
 // Internal function definitions
 
-void  writeFlashShort(void);
-void  writeFlashLong(void);
+void writeFlashShort(void);
+void writeFlashLong(void);
 BYTE readFlashBlock(WORD flashAddr);
 
-// Initialise variables for Flash program tracking
-void initRomOps()
-
-{
+/**
+ *  Initialise variables for Flash program tracking.
+ */
+void initRomOps() {
     flashFlags.asByte = 0;
     flashblock = 0xFFFF;
 }
 
 
-//********************
-//flash block write. flash 64 byte buffer
-//fast write, this requires no 0 to 1 bit changes, only 1 to 0 bits are allowed. or use write_flash_long with erase before write 
-
- void  writeFlashShort(void)
-{
+/**
+ * Flash block write. flash 64 byte buffer.
+ * Fast write, this requires no 0 to 1 bit changes, only 1 to 0 bits are allowed. 
+ * Or use write_flash_long with erase before write 
+ */
+ void  writeFlashShort(void) {
+    INTCONbits.GIE = 0;     // disable all interrupts
+#ifdef __XC8__
+    TBLPTR = flashblock & ~(64 - 1); //force row boundary
+    for (unsigned char i=0; i<64; i++) {
+        TABLAT = flashbuf[i];
+        asm("TBLWT*+");
+        EECON2 = 0x55;
+        EECON2 = 0xAA;
+        EECON1bits.WR = TRUE;
+    }
+    EECON1bits.WREN = FALSE;
+#else
     WORD ptr;
     BYTE fwCounter;
 
     ptr= (WORD)flashbuf;
     TBLPTR=flashblock;
     FSR0=ptr;
-    INTCONbits.GIE = 0;     // disable all interrupts
+    
 
 #ifdef CPUF18K
     flashidx=64;            // K series processors can write 64 bytes in one operation
@@ -116,9 +139,11 @@ _endasm
         EECON2 = 0xaa;          // write 0xaa
         EECON1bits.WR = 1;      // start writing
         EECON1bits.WREN = 0;    // disable write to memory
+        
 _asm
         TBLRDPOSTINC            // Table pointer ready for next 32
 _endasm
+#endif
 
 #ifdef CPUF18F
     }
@@ -127,10 +152,10 @@ _endasm
 }
 
 
-//********************
-//flash block write. flash 64 byte buffer with block erase
-void  writeFlashLong(void)
-{
+/**
+ * Flash block write. flash 64 byte buffer with block erase.
+ */
+void  writeFlashLong(void) {
     // Erase block first
     TBLPTR=flashblock;
     INTCONbits.GIE = 0;     // disable all interrupts
@@ -141,50 +166,61 @@ void  writeFlashLong(void)
     EECON2 = 0x55;          // write 0x55
     EECON2 = 0xaa;          // write 0xaa
     EECON1bits.WR = 1;      // start erasing
-    EECON1bits.WREN = 0;    // diable write to memory
+    EECON1bits.WREN = 0;    // disable write to memory
     INTCONbits.GIE = 1;     // enable all interrupts
     //Now write data to flash
     writeFlashShort();
 }
 
-
- void flushFlashImage( void )
- {
-     if (flashFlags.modified)
-     {
-        if(flashFlags.zeroto1)
+/**
+ * If the buffer has unwritten changes then write these out to Flash.
+ */
+ void flushFlashImage( void ) {
+     if (flashFlags.modified) {
+        if(flashFlags.zeroto1) {
             writeFlashLong();
-        else
+        } else {
             writeFlashShort();
+        }
      }
  }
 
 
-//********************
-//flash block read. Read flash through a 64 byte buffer with write back management
-//  valid:3    //must be 101 (5) to be valid
-//  loaded:1   // if buffer is loaded
-//  modified:1 //flag if buffer is modified
-//  zeroto1:1  //flag if long write with block erase
-
-BYTE readFlashBlock(WORD flashAddr)
-{
+/**
+ * Flash block read. Read flash through a 64 byte buffer with write back management.
+ *  valid:3    //must be 101 (5) to be valid
+ *  loaded:1   // if buffer is loaded
+ *  modified:1 //flag if buffer is modified
+ *  zeroto1:1  //flag if long write with block erase
+ */
+ /**
+ * Read a byte from flash. If the required buffer is currently loaded then use the value 
+ * stored there since it may have been modified. Otherwise load the buffer from flash
+  * before returning the value.
+ * @param addr the address to be read from Flash
+ * @return the byte read from Flash
+ */
+BYTE readFlashBlock(WORD flashAddr) {
     WORD ptr;
 
-    if(flashFlags.valid !=5)
-    {
+    if(flashFlags.valid !=5) {
         flashFlags.asByte=5;  //force reload
     }
 
-    if(flashFlags.loaded && flashblock!=(flashAddr & 0XFFC0))
-    {
+    if(flashFlags.loaded && flashblock!=(flashAddr & 0XFFC0)) {
         //detected access from a different block so we need to write this one (if it has been changed)
         flushFlashImage();
         flashFlags.asByte=5;
     }
 
-    if(!flashFlags.loaded)
-    {
+    if(!flashFlags.loaded) {
+#ifdef __XC8__
+        TBLPTR = flashblock & ~(64 - 1); //force row boundary
+        for (unsigned char i=0; i<64; i++) {
+            asm("TBLRD*+");
+            flashbuf[i] = TABLAT;
+        }
+#else
         //load the buffer
         ptr= (WORD)flashbuf;
         FSR0=ptr;
@@ -200,64 +236,77 @@ READ_BLOCK:
         DECF flashidx,F,1
         BNZ READ_BLOCK
 _endasm
+#endif
         flashFlags.loaded = TRUE;
-
     }
     return flashbuf[flashAddr & 0X3F];
 }
 
 
-//write a byte to the FLASH image, flush current image to Flash if necessary
-void writeFlashImage(WORD addr, BYTE data)
-{
+/**
+ * Write a byte to the FLASH image, flush current image to Flash if necessary.
+ * @param addr the destination address of the byte to be written
+ * @param data the data byte to be written
+ */
+void writeFlashImage(BYTE * addr, BYTE data) {
     unsigned char *offset;
 
-    if(flashFlags.valid !=5)
-    {
+    if(flashFlags.valid !=5) {
         flashFlags.valid=5;  //force reload
     }
 
-    if (!flashFlags.loaded || flashblock!=(addr & 0XFFC0))
-        readFlashBlock(addr);
+    if (!flashFlags.loaded || flashblock!=((WORD)addr & 0XFFC0)) {
+        readFlashBlock((WORD)addr);
+    }
+    offset = &flashbuf[(WORD)addr & 0x3F];
 
-    offset = &flashbuf[addr & 0x3F];
-
-    if(data !=*offset)
+    if(data !=*offset) {
         flashFlags.modified=1;
-
-    if(data & ~*offset)
+    }
+    if(data & ~*offset) {
         flashFlags.zeroto1=1;
+    }
     *offset=data;
 }
 
-// Write one byte and flush to flash
-
-void writeFlashByte( WORD flashAddr, BYTE flashData )
-
-{
+/**
+ * Write one byte and flush to flash.
+ * @param flashAddr the destination address of the byte to be written
+ * @param flashData the data byte to be written
+ */
+void writeFlashByte( BYTE * flashAddr, BYTE flashData ) {
     writeFlashImage( flashAddr, flashData );    // Put data into memory image, if necessary flush image to flash first
     flushFlashImage();                          // Flush any changes
 }
 
-
-void setFlashWord( WORD flashAddr, WORD flashData )
-
-{
-     writeFlashImage( flashAddr, (flashData & 0x00FF) );    // Put LS byte into memory image, if necessary flush image to flash first
-     writeFlashImage( flashAddr+1, (flashData >> 8) );      // Repeat for MSByte
+/**
+ * Write one word to the flash buffer.
+ * @param flashAddr the destination address of the byte to be written
+ * @param flashData the data word to be written
+ */
+void setFlashWord( WORD * flashAddr, WORD flashData ) {
+     writeFlashImage( (BYTE*)flashAddr, (BYTE)(flashData & 0x00FF) );    // Put LS byte into memory image, if necessary flush image to flash first
+     writeFlashImage( ((BYTE*)flashAddr)+1, (BYTE)(flashData >> 8) );      // Repeat for MSByte
 }
 
-void setFlashBuffer( WORD flashAddr, BYTE *bufferaddr, BYTE bufferSize )
-{
+/**
+ * Write a range of addresses to Flash.
+ * @param flashAddr
+ * @param bufferaddr
+ * @param bufferSize
+ */
+void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize ) {
     BYTE    i;
-
     for ( i=0; i<bufferSize; i++)
         writeFlashImage( flashAddr+i, bufferaddr[i] );
 }
+
 //*************** EEPROM operations
 
-/*
- * ee_read - read from data EEPROM
+/**
+ * Read a byte from data EEPROM.
+ * @param addr the address to be read
+ * @return the byte from EEPROM
  */
 BYTE ee_read(WORD addr) {
     // EEADRH = addr >> 8;         // High byte of address to read
@@ -269,8 +318,10 @@ BYTE ee_read(WORD addr) {
     return EEDATA;
 }
 
-/*
- * ee_write - write to data EEPROM
+/**
+ * Write one byte to data EEPROM.
+ * @param addr the address to be written
+ * @param data the data to be written
  */
 void ee_write(WORD addr, BYTE data) {
     SET_EADDRH(addr >> 8);      // High byte of address to write
@@ -283,8 +334,13 @@ void ee_write(WORD addr, BYTE data) {
     EECON2 = 0x55;
     EECON2 = 0xAA;
     EECON1bits.WR = 1;
+#ifdef __XC8__
+    asm("NOP");
+    asm("NOP");
+#else
     _asm nop
          nop _endasm
+#endif
     INTCONbits.GIE = 1;         /* Enable Interrupts */
     while (!EEIF)
         ;
@@ -292,14 +348,13 @@ void ee_write(WORD addr, BYTE data) {
     EECON1bits.WREN = 0;		/* Disable writes */
 }
 
-/*
- * ee_read_short() - read a short (16 bit) word from EEPROM
- *
+/**
+ * Read a WORD (16 bit) word from EEPROM.
  * Data is stored in little endian format
+ * @param addr the address to be read
+ * @return the WORD from EEPROM
  */
-WORD ee_read_short(WORD addr)
-
-{
+WORD ee_read_short(WORD addr) {
 	WORD ee_addr = addr;
     WORD ret = ee_read(ee_addr++);
     
@@ -307,10 +362,11 @@ WORD ee_read_short(WORD addr)
 	return ret;
 }
 
-/*
- * ee_write_short() - write a short (16 bit) data to EEPROM
- *
- * Data is stored in little endian format
+/**
+ * Write a WORD (16 bit) data to EEPROM.
+ * Data is stored in little endian format.
+ * @param addr the address to be written
+ * @param data the data to be written
  */
 void ee_write_short(WORD addr, WORD data) {
 	WORD ee_addr = addr;
@@ -318,3 +374,21 @@ void ee_write_short(WORD addr, WORD data) {
 	ee_write(ee_addr, (BYTE)(data>>8));
 }
 
+/**
+ * Read the DevId from the Config area
+ */
+#ifdef __XC8__
+extern const WORD devId @0x3FFFFE;
+#endif
+WORD readCPUType( void ) {
+#ifdef __XC8__
+    return devId;
+#else
+    id = *(far rom WORD*)0x3FFFFE;
+
+    TBLPTRU = 0;
+    INTCONbits.GIE = 1;
+
+    return( id );
+#endif
+}

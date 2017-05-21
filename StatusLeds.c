@@ -45,6 +45,7 @@
  For library version number and revision history see CBUSLib.h
 
 */
+#include "module.h"
 #include "StatusLeds.h"
 
 
@@ -53,55 +54,77 @@ enum FlashStates    flashState;
 
 //******* Routines to set the Green and Yellow SLiM and FLiM LEDs *************************
 
-void initStatusLeds()
-{
+/**
+ * Initialise with both LEDs on.
+ */
+void initStatusLeds() {
     flashState = flNone;
+    TRIS_LED1Y = 1;
+    TRIS_LED2G = 1;
 }
-void setSLiMLed()
-{
+
+/**
+ * Set the Green LED and turn of the Yellow LED.
+ */
+void setSLiMLed() {
     LED1Y = 0;
     LED2G = 1;
     flashState = flNone;
 }
-void setFLiMLed()
-{
+
+/**
+ * Set the yellow LED and turn off the green LED.
+ */
+void setFLiMLed() {
     LED1Y = 1;
     LED2G = 0;
     flashState = flNone;
 }
 
-void setStatusLed( BOOL FLiMLED )
-{
-    if (FLiMLED)
+/**
+ * Sets either the FLiM or the SLiM LED.
+ * @param FLiMLED if true turns on the FLiM LED otherwise turn on the SLiM LED.
+ */
+void setStatusLed( BOOL FLiMLED ) {
+    if (FLiMLED) {
         setFLiMLed();
-    else
+    } else {
         setSLiMLed();
+    }
 }
 
-void doFLiMFlash()
-{
+/**
+ * Flash the FLiM LED.
+ */
+void doFLiMFlash() {
     LED1Y = !LED1Y;
     flashTime.Val = tickGet();
 }
 
-void startFLiMFlash( BOOL fast )
-{
+/**
+ * Start the FLiM LED flashing at the specified rate.
+ * @param fast if true flash the LED quickly
+ */
+void startFLiMFlash( BOOL fast ) {
     flashState = (fast? flFLiMFast : flFLiMSlow);
     doFLiMFlash();
 }
 
-void checkFlashing()
-{
-    switch (flashState)
-    {
+/**
+ * Process the FLiM LED flashing. Call regularly.
+ */
+void checkFlashing() {
+    switch (flashState) {
         case flFLiMSlow:
-            if (tickTimeSince(flashTime) > SLOW_FLASH_TIME)
+            if (tickTimeSince(flashTime) > SLOW_FLASH_TIME) {
                 doFLiMFlash();
+            }
             break;
             
         case flFLiMFast:
-            if (tickTimeSince(flashTime) > FAST_FLASH_TIME)
+            if (tickTimeSince(flashTime) > FAST_FLASH_TIME) {
                 doFLiMFlash();
+            }
             break;
     }        
 }
