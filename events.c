@@ -53,7 +53,7 @@
 
  */
 #include "events.h"
-#include "module.h"
+#include "../CANMIOfirmware/module.h"
 #include "FLiM.h"
 #include <stddef.h>
 

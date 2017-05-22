@@ -45,7 +45,7 @@
  For library version number and revision history see CBUSLib.h
 
 */
-#include "module.h"
+#include "../CANMIOfirmware/module.h"
 #include "StatusLeds.h"
 
 

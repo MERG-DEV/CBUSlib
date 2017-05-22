@@ -55,7 +55,7 @@
                 PNB - Develop data structures for node variable and events tables
     30/12/16    PNB - Add new test mode definitions
 */
-#include "module.h"
+#include "../CANMIOfirmware/module.h"
 #include "cbus.h"
 #include "romops.h"
 #include "EEPROM.h"

@@ -42,7 +42,6 @@
 
 #include <string.h>
 #include "FLiM.h"
-#include "module.h"
 #include "StatusLeds.h"
 #include "events.h"
 #include "romops.h"
