@@ -15,11 +15,11 @@ The files are not strictly a library but a set of source files which are added t
 To use this library:
 1. clone this repo into your local git directory.
 2. Create a new project within MPLAB-X selecting:
---  Standalone Microchip project
--- Advanced 8-bit MCUs, PIC18F25K80
--- PICkit3
--- Specify which toolchain you are using
--- Specify your project name
+    - Standalone Microchip project
+    - Advanced 8-bit MCUs, PIC18F25K80
+    - PICkit3
+    - Specify which toolchain you are using
+    - Specify your project name
 3. Optionally clone the CANnone project and copy/rename the files to the project directory. This will provide an example main loop and the necessary defines required by the library. Edit these files as necessary.
 4. Selectively "Import Existing Item" from the CBUSlib local repo.
 
