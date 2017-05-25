@@ -61,8 +61,8 @@
  * 
  */
 #include <stddef.h>
-#include "../CANMIOfirmware/module.h"
-#include "FLiM.h"
+#include "module.h"
+#include "FliM.h"
 #include "events.h"
 #include "cbus.h"
 #include "romops.h"

@@ -1,7 +1,7 @@
 #ifndef __EVENTS_H
 #define __EVENTS_H
 
-#include "FLiM.h"
+#include "FliM.h"
 /*
 
  Copyright (C) Pete Brownlow 2014-2017   software@upsys.co.uk

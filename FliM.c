@@ -41,8 +41,8 @@
  */
 
 #include <string.h>
-#include "../CANMIOfirmware/module.h"
-#include "FLiM.h"
+#include "module.h"
+#include "FliM.h"
 #include "StatusLeds.h"
 #include "events.h"
 #include "romops.h"
