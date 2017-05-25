@@ -55,10 +55,6 @@
                 PNB - Develop data structures for node variable and events tables
     30/12/16    PNB - Add new test mode definitions
 */
-#include "module.h"
-#include "cbus.h"
-#include "romops.h"
-#include "EEPROM.h"
 
 #define DEFAULT_NN 	0xDEAD
 
@@ -66,6 +62,8 @@
 #define FLiM_HOLD_TIME  4 * ONE_SECOND
 #define SET_TEST_MODE_TIME 8 * ONE_SECOND
 #define NEXT_TEST_TIME ONE_SECOND
+
+#include "GenericTypeDefs.h"
 
 extern BYTE BlinkLED( BOOL blinkstatus );
 
