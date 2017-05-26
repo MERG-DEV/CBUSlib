@@ -121,7 +121,7 @@ typedef struct {
     Event event;    // the NN and EN
     BYTE next;      // index to continuation also indicates if entry is free
     EventTableFlags flags;
-    BYTE evs[EVperEVT];
+    BYTE evs[EVENT_TABLE_WIDTH];
 } EventTable;
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 
@@ -360,8 +360,8 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
             setFlashWord((WORD*)&eventTable[tableIndex].event.NN, nodeNumber);
             setFlashWord((WORD*)&eventTable[tableIndex].event.EN, eventNumber);
             writeFlashImage((BYTE*)&eventTable[tableIndex].flags, 0);
-            for (unsigned char e = 0; e < EVperEVT; e++) {
-                writeFlashImage((BYTE*)&eventTable[tableIndex].flags, NO_ACTION);
+            for (unsigned char e = 0; e < EVENT_TABLE_WIDTH; e++) {
+                writeFlashImage((BYTE*)&eventTable[tableIndex].evs[e], NO_ACTION);
             }
             error = writeEv(tableIndex, evNum, evVal);
             if (error) {
@@ -417,10 +417,13 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
  * @return 0 if success otherwise the error
  */
 unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
-    while (evNum >= EVperEVT) {
+    if (evNum > EVperEVT) {
+        return CMDERR_INV_EV_IDX;
+    }
+    while (evNum >= EVENT_TABLE_WIDTH) {
         unsigned char nextIdx;
         // skip forward looking for the right chained table entry
-        evNum -= EVperEVT;
+        evNum -= EVENT_TABLE_WIDTH;
         
         if (eventTable[tableIndex].flags.continues) {
             tableIndex = eventTable[tableIndex].next;
@@ -432,8 +435,8 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
                     setFlashWord((WORD*)&eventTable[nextIdx].event.NN, 0xff); // this field not used
                     setFlashWord((WORD*)&eventTable[nextIdx].event.EN, 0xff); // this field not used
                     writeFlashImage((BYTE*)&eventTable[nextIdx].flags, 1);    // set continuation flag
-                    for (unsigned char e = 0; e < EVperEVT; e++) {
-                        writeFlashImage((BYTE*)&eventTable[nextIdx].flags, NO_ACTION); // clear the EVs
+                    for (unsigned char e = 0; e < EVENT_TABLE_WIDTH; e++) {
+                        writeFlashImage((BYTE*)&eventTable[nextIdx].evs[e], NO_ACTION); // clear the EVs
                     }
                     // set the next of the previous in chain
                     writeFlashImage((BYTE*)&eventTable[tableIndex].next, nextIdx);
@@ -465,8 +468,11 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
     if (evNum == 0) {
         return -1;
     }
+    if (evNum > EVperEVT) {
+        return -1;
+    }
     evNum--;    // make it start from 0
-    while (evNum >= EVperEVT) {
+    while (evNum >= EVENT_TABLE_WIDTH) {
         // if evNum is beyond current eventTable entry move to next one
         if (eventTable[tableIndex].flags.continues) {
             tableIndex = eventTable[tableIndex].next;
@@ -548,6 +554,9 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
 #ifdef PRODUCED_EVENTS
 /**
  * Get the Produced Event to transmit for the specified action.
+ * If the same produced action has been provisioned for more than 1 event
+ * only the first provisioned event will be returned.
+ * 
  * @param action the produced action
  * @return the produced event or NULL if none has been provisioned
  */ 
