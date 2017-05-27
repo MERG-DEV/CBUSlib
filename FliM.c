@@ -41,10 +41,12 @@
  */
 
 #include <string.h>
-#include "FLiM.h"
+#include "module.h"
+#include "FliM.h"
 #include "StatusLeds.h"
 #include "events.h"
 #include "romops.h"
+#include "cbus.h"
 
 extern BOOL validateNV(BYTE NVindex, BYTE oldValue, BYTE newValue);
 extern void actUponNVchange(BYTE NVindex, BYTE NVvalue);
