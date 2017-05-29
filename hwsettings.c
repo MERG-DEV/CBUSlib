@@ -47,7 +47,7 @@
 
 */
 /*
- * Chip specific operations. Do these includes here break the statement at the end of the CONFIG?
+ * Chip specific operations. Do these includes here break the statement at the en of the CONFIG?
  */
 #include "hwsettings.h"
 
@@ -68,6 +68,11 @@
 
 // 'C' source line config statements
 
+
+// PIC18F25K80 Configuration Bit Settings
+
+// 'C' source line config statements
+
 // CONFIG1L
 #pragma config RETEN = OFF      // VREG Sleep Enable bit (Ultra low-power regulator is Disabled (Controlled by REGSLP bit))
 #pragma config INTOSCSEL = HIGH // LF-INTOSC Low-power Enable bit (LF-INTOSC in High-power mode during Sleep)
@@ -81,9 +86,9 @@
 #pragma config IESO = OFF       // Internal External Oscillator Switch Over Mode (Disabled)
 
 // CONFIG2L
-#pragma config PWRTEN = OFF     // Power Up Timer (Disabled)
+#pragma config PWRTEN = ON      // Power Up Timer (Enabled)
 #pragma config BOREN = OFF      // Brown Out Detect (Disabled in hardware, SBOREN disabled)
-#pragma config BORV = 3         // Brown-out Reset Voltage bits (1.8V)
+#pragma config BORV = 0         // Brown-out Reset Voltage bits (3.0V)
 #pragma config BORPWR = ZPBORMV // BORMV Power level (ZPBORMV instead of BORMV is selected)
 
 // CONFIG2H
@@ -96,7 +101,7 @@
 #pragma config MCLRE = ON       // Master Clear Enable (MCLR Enabled, RE3 Disabled)
 
 // CONFIG4L
-#pragma config STVREN = OFF     // Stack Overflow Reset (Disabled)
+#pragma config STVREN = ON      // Stack Overflow Reset (Enabled)
 #pragma config BBSIZ = BB1K     // Boot Block Size (1K word Boot Block size)
 
 // CONFIG5L
@@ -133,7 +138,6 @@
 // Use project enums instead of #define for ON and OFF.
 
 
-
 #elif defined CPUF18F
     #define BORSTAT BOHW
     #pragma config OSC=HS, FCMEN=OFF, IESO=OFF
@@ -159,7 +163,7 @@ BYTE clkMHz;        // Derived or set system clock frequency in MHz
 void setclkMHz( void )
 {
     
-    #ifdef BOOTLOADER_ABSENT
+    #ifndef BOOTLOADER_PRESENT
         #if defined(CPUF18F)
             clkMHz = 16;
         #else
