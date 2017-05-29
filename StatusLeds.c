@@ -59,8 +59,10 @@ enum FlashStates    flashState;
  */
 void initStatusLeds() {
     flashState = flNone;
-    TRIS_LED1Y = 1;
-    TRIS_LED2G = 1;
+    TRIS_LED1Y = 0;
+    TRIS_LED2G = 0;
+    LED1Y = 1;
+    LED2G = 1;
 }
 
 /**
