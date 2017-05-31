@@ -97,7 +97,7 @@ volatile BYTE timerExtension1,timerExtension2;
 *                   4 bytes in PIC18.  PIC24/dsPIC version do not 
 *                   enable or require interrupts
 ********************************************************************/
-void initTicker()
+void initTicker(unsigned char priority)
 {
     BYTE divider, i;
 
@@ -109,7 +109,7 @@ void initTicker()
 
 #if defined(__18CXX) || defined (CPUF18K)
     TMR_CON = 0b00000000 | divider;     // Enable internal clock, prescaler on and set prescaler value
-    TMR_IP = 1;
+    TMR_IP = priority;
     TMR_IF = 0;
     TMR_IE = 1;
     TMR_ON = 1;

@@ -193,7 +193,7 @@ typedef union _TickValue
 
 // Global routine definitions
 
-void initTicker(void);
+void initTicker(unsigned char priority);
 DWORD tickGet(void);
 void tickISR(void);
 

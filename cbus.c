@@ -64,8 +64,6 @@ BYTE    cbusMsg[pktsize]; // Global buffer for fast access to CBUS packets - do 
 
 void cbusInit( WORD initNodeID  )
 {
-    initTicker();  // Background ticker used for time delays
-
     nodeID = ee_read_short( (WORD)EE_NODE_ID );
 
     if (nodeID == 0xFFFF)
