@@ -70,8 +70,8 @@ WORD    deviceid;      // Device id in config memory
 enum FLiMStates flimState;          // This is stored in EEPROM with node id
 enum FLiMStates prevFlimState;      // Store previous state in setup mode
 TickValue   switchTime;             // Debouncing FLiM switch
-const NodeVarTable nodeVarTable @AT_NV ;
-const __rom ModuleNvDefs * NV = &(nodeVarTable.moduleNVs);    // pointer to the NV structure
+extern const NodeVarTable nodeVarTable @AT_NV ;
+
 
 #ifdef __XC8__
 const BYTE * NvBytePtr;            // Node variables in ROM as bytes

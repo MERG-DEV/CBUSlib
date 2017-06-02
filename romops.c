@@ -98,6 +98,7 @@ void initRomOps() {
     
 #ifdef __XC8__
     TBLPTR = flashblock & ~(64 - 1); //force row boundary
+    INTCONbits.GIE = 0;     // disable all interrupts ERRATA says this is needed before TBLWT
     for (unsigned char i=0; i<64; i++) {
         TABLAT = flashbuf[i];
         asm("TBLWT*+");
@@ -113,7 +114,7 @@ void initRomOps() {
     EECON1bits.CFGS = 0;    // 0=ProgramMemory/EEPROM, 1=ConfigBits
     EECON1bits.FREE = 0;    // No erase
     EECON1bits.WREN = 1;    // enable write to memory
-    INTCONbits.GIE = 0;     // disable all interrupts
+    
     EECON2 = 0x55;
     EECON2 = 0xAA;
     EECON1bits.WR = TRUE;
@@ -330,6 +331,8 @@ void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize ) {
  * @return the byte from EEPROM
  */
 BYTE ee_read(WORD addr) {
+    while (EECON1bits.WR)       // Errata says this is required
+        ;
     // EEADRH = addr >> 8;        //  High byte of address to read
     SET_EADDRH(addr >> 8);
     EEADR = addr & 0xFF;       	/* Low byte of Data Memory Address to read */
@@ -403,55 +406,6 @@ void ee_write_short(WORD addr, WORD data) {
 	ee_write(ee_addr++, (BYTE)data);
 	ee_write(ee_addr, (BYTE)(data>>8));
 }
-
-
-
-/**
-  Section: Data EEPROM Module APIs
-*/
-
-void DATAEE_WriteByte(WORD bAdd, BYTE bData)
-{
-    WORD GIEBitValue = INTCONbits.GIE;
-
-    EEADRH = ((bAdd >> 8) & 0x03);
-    EEADR = (bAdd & 0xFF);
-    EEDATA = bData;
-    EECON1bits.EEPGD = 0;
-    EECON1bits.CFGS = 0;
-    EECON1bits.WREN = 1;
-    INTCONbits.GIE = 0;     // Disable interrupts
-    EEIF = 0;
-    EECON2 = 0x55;
-    EECON2 = 0xAA;
-    EECON1bits.WR = 1;
-    // Wait for write to complete
-    while (EECON1bits.WR)
-    {
-    }
-    while ( ! EEIF) {
-    }
-    EEIF = 0;
-    EECON1bits.WREN = 0;
-    INTCONbits.GIE = GIEBitValue;   // restore interrupt enable
-}
-
-BYTE DATAEE_ReadByte(WORD bAdd)
-{
-    EEADRH = ((bAdd >> 8) & 0x03);
-    EEADR = (bAdd & 0xFF);
-    EECON1bits.CFGS = 0;
-    EECON1bits.EEPGD = 0;
-    EECON1bits.RD = 1;
-    NOP();  // NOPs may be required for latency at high frequencies
-    NOP();
-
-    return (EEDATA);
-}
-
-
-
-
 
 /**
  * Read the DevId from the Config area

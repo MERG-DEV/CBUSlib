@@ -550,6 +550,26 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
     return tableIndex+1;
 }
 
+/**
+ * Delete all occurrences of the action.
+ * @param action
+ */
+void deleteAction(unsigned char action) {
+    if (action != NO_ACTION) {
+        for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+            for (unsigned char e=0; e<EVENT_TABLE_WIDTH; e++) {
+                if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+                    if (eventTable[tableIndex].evs[e] == action) {
+                        writeEv(tableIndex, 0, NO_ACTION);
+                    }
+                }
+            }
+        }
+#ifdef HASH_TABLE
+        rebuildHashtable();                
+#endif
+    }
+}
 
 #ifdef PRODUCED_EVENTS
 /**
