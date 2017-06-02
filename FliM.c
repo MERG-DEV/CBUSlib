@@ -37,6 +37,7 @@
 	using these libraries.
 	
 	9/5/11	Pete Brownlow	- Initial coding
+	23/5/17	Ian Hogg        - Ported to XC8 compiler
 
  */
 
@@ -69,12 +70,14 @@ WORD    deviceid;      // Device id in config memory
 enum FLiMStates flimState;          // This is stored in EEPROM with node id
 enum FLiMStates prevFlimState;      // Store previous state in setup mode
 TickValue   switchTime;             // Debouncing FLiM switch
+const NodeVarTable nodeVarTable @AT_NV ;
+const __rom ModuleNvDefs * NV = &(nodeVarTable.moduleNVs);    // pointer to the NV structure
 
 #ifdef __XC8__
-NodeBytes 	*NVPtr;     // Node variables in ROM
-//EventTableEntry     *EVTPtr;    // Event table in ROM
+const BYTE * NvBytePtr;            // Node variables in ROM as bytes
+//EventTableEntry     *EVTPtr;      // Event table in ROM
 #else
-rom	NodeBytes 	*NVPtr;     // Node variables in ROM
+rom	NodeBytes 	*NxVPtr;     // Node variables in ROM
 rom EventTableEntry     *EVTPtr;    // Event table in ROM
    
 #pragma code APP
@@ -90,17 +93,17 @@ BOOL    NV_changed;
  *  
  */
 void flimInit(void) {
-    initRomOps();    
+    
     flimState = ee_read((WORD)EE_FLIM_MODE);   // Get flim mode from EEPROM
     prevFlimState = flimState;
     eventsInit();
     cbusInit(DEFAULT_NN);
     FlashStatus = FALSE;
-
+    
     // Initialise node variables
 
-//	NVPtr = (NodeBytes*)nodeVarTable.nodevars;         // Node Variables table
-//    NV = (rom ModuleNvDefs*) NVPtr;
+	NvBytePtr = nodeVarTable.nodevars;         // Node Variables table
+    NV = &(nodeVarTable.moduleNVs);
 //	EVTPtr = eventTable;           // Event table
 	NV_changed = FALSE; 
 } // flimInit
@@ -114,6 +117,7 @@ void flimInit(void) {
  * can define FLiM_SW as a macro or procedure call as required.
  */
 void FLiMSWCheck( void ) {
+
     switch (flimState)
     {
        case fsFLiM:
@@ -149,6 +153,7 @@ void FLiMSWCheck( void ) {
                     SLiMRevert();
                     setSLiMLed();
                 }
+                SaveNodeDetails(nodeID, flimState);
             } else {
                 if (tickTimeSince(switchTime) > SET_TEST_MODE_TIME) {
                     flimState = fsPressedTest;
@@ -202,6 +207,9 @@ void FLiMSWCheck( void ) {
                 }
             }
             break;
+        default:
+            LED1Y = 1;
+            break;
     } // switch
 
 } // FLiMSWCheck
@@ -238,10 +246,14 @@ void SLiMRevert(void) {
  * @return true if the message was processed
  */
 BOOL parseCBUSMsg(BYTE *msg) {
-    // Process the incoming message
-    if (!parseCbusEvent(msg))
-        return( parseFLiMCmd(msg));
-    return FALSE;
+    // check this is an EVENT
+    if (((msg[d0] & EVENT_SET_MASK) == EVENT_SET_MASK) && ((~msg[d0] & EVENT_CLR_MASK)== EVENT_CLR_MASK)) {
+	// it is an event pass to the module's event processing
+        return parseCbusEvent(msg);
+    }
+    // FLiM processing doesn't process Events
+    // Process the incoming (non-event) message
+    return( parseFLiMCmd(msg));
 }
 
 
@@ -442,6 +454,8 @@ void doRqnpn(BYTE idx) {
 
 /**
  * Read a node variable.
+ * Could just access the nodeVarTable directly but doing via the flash routines means the
+ * nearby values are cached.
  * @param NVindex the index of the Node Variable
  */
 void doNvrd(BYTE NVindex)
@@ -481,7 +495,7 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         flashIndex += NVindex;
         flashIndex--;
 
-        BYTE oldValue = *NVPtr[--NVindex];
+        BYTE oldValue = NvBytePtr[--NVindex];
         if (validateNV(NVindex, oldValue, NVvalue)) {
             writeFlashByte((BYTE *)flashIndex, NVvalue);
             actUponNVchange(NVindex, NVvalue);

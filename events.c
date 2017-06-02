@@ -49,8 +49,8 @@
 	
  History for this file:
 	28/12/15	Pete Brownlow	- Factored out from FLiM module
-    25/2/16     Pete Brownlow   - coding in progress
- *  23/5/17     Ian Hogg        - added support for produced events
+        25/2/16     Pete Brownlow   - coding in progress
+        23/5/17     Ian Hogg        - added support for produced events
  * 
  * 
  * Currently written for:

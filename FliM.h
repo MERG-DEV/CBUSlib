@@ -54,6 +54,7 @@
  	09/05/11	PNB	- Initial outline
                 PNB - Develop data structures for node variable and events tables
     30/12/16    PNB - Add new test mode definitions
+    23/5/2017	Ported to XC8 by Ian Hogg 
 */
 
 #define DEFAULT_NN 	0xDEAD
@@ -64,6 +65,8 @@
 #define NEXT_TEST_TIME ONE_SECOND
 
 #include "GenericTypeDefs.h"
+#include "events.h"
+#include "module.h"
 
 extern BYTE BlinkLED( BOOL blinkstatus );
 
@@ -137,7 +140,7 @@ typedef struct
  *  Where ModuleNvDefs is a structure type that defines the meaning and structure
  *  of each node variable as used by that application.
  *
- *  NVPtr is then defined to point to the NodeBytes member of the union, thus giving the
+ *  NzVPtr is then defined to point to the NodeBytes member of the union, thus giving the
  *  generic FLiM code access to the node variables table without requiring any knowledge
  *  of the structure of the node variables themselves. 
  */
@@ -147,37 +150,15 @@ typedef union {
         ModuleNvDefs    moduleNVs;
 } NodeVarTable;
 
-extern const NodeVarTable nodeVarTable;
-const ModuleNvDefs * NV = &(nodeVarTable.moduleNVs);
-
-/* EVENTS
- *
- * The events are stored in tables in flash (flash is faster to read than EEPROM).
- * Separate tables are used for Produced events and Consumed events since they require 
- * different data and different lookup schemes.
- * The Produced events are looked up by the action that caused them.
- * The Consumed events are looked up by the CBUS event to find the module specific actions
- * to perform. The lookup is done using a hash table to find the index into the event2Actions table.
- * The action2Event and event2Actions tables are stored in Flash whilst the hashtable
- * lookup for the event2Actions table is stored in RAM.
- * 
- * For Produced events the event is taught using the action stored in the EV field of the
- * CBUS message.
- * For Consumed events the actions are taught using the EV field of the CBUS message.
- * Multiple actions can be specified for a Consumed event. This can be used to set up
- * routes with a single event. 
- *
- * The generic FLiM library code handles the teaching (Learn) and unlearning of events
- * and the storage of the events. The application code just needs to process a consumed 
- * event's actions and to produce actions using the application's actions.
- *
- */
-// A helper structure to store the details of an event.
-typedef struct {
-    WORD NN;
-    WORD EN;
-} Event;
-
+extern const NodeVarTable nodeVarTable;         // const so it resides in flash
+extern const ModuleNvDefs * NV;                 // pointer to const
+#ifdef __XC8__
+//extern const NodeBytes *	NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
+//extern EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
+#else
+extern rom	NodeBytes 	*NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
+extern rom	EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
+#endif
 
 
 // State machine for FliM operations
@@ -201,13 +182,6 @@ enum FLiMStates {
 
 // External variables for other modules to access FLiM
 
-#ifdef __XC8__
-extern NodeBytes 	*NVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
-//extern EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
-#else
-extern rom	NodeBytes 	*NVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
-extern rom	EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
-#endif
 
 extern BOOL	NV_changed;	
 extern enum     FLiMStates flimState;

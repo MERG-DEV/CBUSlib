@@ -45,6 +45,8 @@
 	
  For version number and revision history see CANPanel.h
 
+ Adapted for use with CANMIO by Ian Hogg 23/5/2017
+
 */
 /*
  * Chip specific operations. Do these includes here break the statement at the en of the CONFIG?

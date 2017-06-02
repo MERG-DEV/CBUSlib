@@ -44,6 +44,8 @@
 	
  For library version number and revision history see CBUSLib.h
 
+     Ported to XC8 compiler by Ian Hogg
+
 */
 
 #include "can18.h"

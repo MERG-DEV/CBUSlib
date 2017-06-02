@@ -45,6 +45,8 @@
 	
  For library version number and revision history see CBUSLib.h
 
+ Ported to XC8 by Ian Hogg 23/5/2017
+
 */
 /**
  * Flash routines hide the complexity of erasing and writing in pages.
@@ -75,7 +77,7 @@ WORD        flashblock;                     //address of current 64 byte flash b
 // Internal function definitions
 
 void writeFlashShort(void);
-void writeFlashLong(void);
+void writeFlashWithErase(void);
 BYTE readFlashBlock(WORD flashAddr);
 
 /**
@@ -93,18 +95,32 @@ void initRomOps() {
  * Or use write_flash_long with erase before write 
  */
  void  writeFlashShort(void) {
-    INTCONbits.GIE = 0;     // disable all interrupts
+    
 #ifdef __XC8__
     TBLPTR = flashblock & ~(64 - 1); //force row boundary
     for (unsigned char i=0; i<64; i++) {
         TABLAT = flashbuf[i];
         asm("TBLWT*+");
-        EECON2 = 0x55;
-        EECON2 = 0xAA;
-        EECON1bits.WR = TRUE;
     }
+    // Note from data sheet: 
+    //   Before setting the WR bit, the Table
+    //   Pointer address needs to be within the
+    //   intended address range of the 64 bytes in
+    //   the holding register.
+    // So we put it back into the block here
+    TBLPTR = flashblock & ~(64 - 1);
+    EECON1bits.EEPGD = 1;   // 1=Program memory, 0=EEPROM
+    EECON1bits.CFGS = 0;    // 0=ProgramMemory/EEPROM, 1=ConfigBits
+    EECON1bits.FREE = 0;    // No erase
+    EECON1bits.WREN = 1;    // enable write to memory
+    INTCONbits.GIE = 0;     // disable all interrupts
+    EECON2 = 0x55;
+    EECON2 = 0xAA;
+    EECON1bits.WR = TRUE;
+    INTCONbits.GIE = 1;     // enable all interrupts
     EECON1bits.WREN = FALSE;
 #else
+    INTCONbits.GIE = 0;     // disable all interrupts
     WORD ptr;
     BYTE fwCounter;
 
@@ -143,31 +159,32 @@ _endasm
 _asm
         TBLRDPOSTINC            // Table pointer ready for next 32
 _endasm
+        INTCONbits.GIE = 1;     // enable all interrupts
 #endif
 
 #ifdef CPUF18F
     }
 #endif
-    INTCONbits.GIE = 1;     // enable all interrupts
+    
 }
 
 
 /**
  * Flash block write. flash 64 byte buffer with block erase.
  */
-void  writeFlashLong(void) {
+void  writeFlashWithErase(void) {
     // Erase block first
     TBLPTR=flashblock;
-    INTCONbits.GIE = 0;     // disable all interrupts
     EECON1bits.EEPGD = 1;   // 1=Program memory, 0=EEPROM
     EECON1bits.CFGS = 0;    // 0=Program memory/EEPROM, 1=ConfigBits
     EECON1bits.WREN = 1;    // enable write to memory
     EECON1bits.FREE = 1;    // enable row erase operation
+    INTCONbits.GIE = 0;     // disable all interrupts
     EECON2 = 0x55;          // write 0x55
     EECON2 = 0xaa;          // write 0xaa
     EECON1bits.WR = 1;      // start erasing
-    EECON1bits.WREN = 0;    // disable write to memory
     INTCONbits.GIE = 1;     // enable all interrupts
+    EECON1bits.WREN = 0;    // disable write to memory
     //Now write data to flash
     writeFlashShort();
 }
@@ -178,7 +195,7 @@ void  writeFlashLong(void) {
  void flushFlashImage( void ) {
      if (flashFlags.modified) {
         if(flashFlags.zeroto1) {
-            writeFlashLong();
+            writeFlashWithErase();
         } else {
             writeFlashShort();
         }
@@ -214,8 +231,11 @@ BYTE readFlashBlock(WORD flashAddr) {
     }
 
     if(!flashFlags.loaded) {
+        // load the buffer
+        flashblock = flashAddr & 0xFFC0;
 #ifdef __XC8__
-        TBLPTR = flashblock & ~(64 - 1); //force row boundary
+        EECON1=0X80;    // access to flash
+        TBLPTR = flashblock;
         for (unsigned char i=0; i<64; i++) {
             asm("TBLRD*+");
             flashbuf[i] = TABLAT;
@@ -297,11 +317,12 @@ void setFlashWord( WORD * flashAddr, WORD flashData ) {
  */
 void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize ) {
     BYTE    i;
-    for ( i=0; i<bufferSize; i++)
+    for ( i=0; i<bufferSize; i++) {
         writeFlashImage( flashAddr+i, bufferaddr[i] );
+    }
 }
 
-//*************** EEPROM operations
+// *************** EEPROM operations
 
 /**
  * Read a byte from data EEPROM.
@@ -309,12 +330,20 @@ void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize ) {
  * @return the byte from EEPROM
  */
 BYTE ee_read(WORD addr) {
-    // EEADRH = addr >> 8;         // High byte of address to read
+    // EEADRH = addr >> 8;        //  High byte of address to read
     SET_EADDRH(addr >> 8);
     EEADR = addr & 0xFF;       	/* Low byte of Data Memory Address to read */
     EECON1bits.EEPGD = 0;    	/* Point to DATA memory */
-    EECON1bits.CFGS = 0;    	/* Access program FLASH or Data EEPROM memory */
+    EECON1bits.CFGS = 0;    	/* Access program FLASH/Data EEPROM memory */
     EECON1bits.RD = 1;			/* EEPROM Read */
+    while (EECON1bits.RD)
+        ;
+    asm("NOP");                 /* data available after a NOP */
+    asm("NOP");                 /* data available after a NOP */
+    asm("NOP");                 /* data available after a NOP */
+    asm("NOP");                 /* data available after a NOP */
+    asm("NOP");                 /* data available after a NOP */
+    asm("NOP");                 /* data available after a NOP */
     return EEDATA;
 }
 
@@ -328,15 +357,16 @@ void ee_write(WORD addr, BYTE data) {
     EEADR = addr & 0xFF;       	/* Low byte of Data Memory Address to write */
     EEDATA = data;
     EECON1bits.EEPGD = 0;       /* Point to DATA memory */
-    EECON1bits.CFGS = 0;        /* Access program FLASH or Data EEPROM memory */
+    EECON1bits.CFGS = 0;        /* Access program FLASH/Data EEPROM memory */
     EECON1bits.WREN = 1;        /* Enable writes */
     INTCONbits.GIE = 0;         /* Disable Interrupts */
     EECON2 = 0x55;
     EECON2 = 0xAA;
     EECON1bits.WR = 1;
 #ifdef __XC8__
-    asm("NOP");
-    asm("NOP");
+    while (EECON1bits.WR)
+        ;
+    //asm("BTFSC EECON1, 1");                 // should wait until WR clears
 #else
     _asm nop
          nop _endasm
@@ -373,6 +403,55 @@ void ee_write_short(WORD addr, WORD data) {
 	ee_write(ee_addr++, (BYTE)data);
 	ee_write(ee_addr, (BYTE)(data>>8));
 }
+
+
+
+/**
+  Section: Data EEPROM Module APIs
+*/
+
+void DATAEE_WriteByte(WORD bAdd, BYTE bData)
+{
+    WORD GIEBitValue = INTCONbits.GIE;
+
+    EEADRH = ((bAdd >> 8) & 0x03);
+    EEADR = (bAdd & 0xFF);
+    EEDATA = bData;
+    EECON1bits.EEPGD = 0;
+    EECON1bits.CFGS = 0;
+    EECON1bits.WREN = 1;
+    INTCONbits.GIE = 0;     // Disable interrupts
+    EEIF = 0;
+    EECON2 = 0x55;
+    EECON2 = 0xAA;
+    EECON1bits.WR = 1;
+    // Wait for write to complete
+    while (EECON1bits.WR)
+    {
+    }
+    while ( ! EEIF) {
+    }
+    EEIF = 0;
+    EECON1bits.WREN = 0;
+    INTCONbits.GIE = GIEBitValue;   // restore interrupt enable
+}
+
+BYTE DATAEE_ReadByte(WORD bAdd)
+{
+    EEADRH = ((bAdd >> 8) & 0x03);
+    EEADR = (bAdd & 0xFF);
+    EECON1bits.CFGS = 0;
+    EECON1bits.EEPGD = 0;
+    EECON1bits.RD = 1;
+    NOP();  // NOPs may be required for latency at high frequencies
+    NOP();
+
+    return (EEDATA);
+}
+
+
+
+
 
 /**
  * Read the DevId from the Config area

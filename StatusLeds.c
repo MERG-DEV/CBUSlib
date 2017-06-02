@@ -44,6 +44,8 @@
 	
  For library version number and revision history see CBUSLib.h
 
+ Modifications to initStatusLeds() by Ian Hogg 23/5/2017
+
 */
 #include "../CANMIOfirmware/module.h"
 #include "StatusLeds.h"

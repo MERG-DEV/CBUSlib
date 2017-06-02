@@ -15,6 +15,7 @@
 *
 * Copyright © 2007-2010 Microchip Technology Inc.  All rights reserved.
 * Copyright © 2015 Pete Brownlow for changes Jan 2015
+* Ported to XC8 by Ian Hogg 23/5/2017
 *
 * Microchip licenses to you the right to use, modify, copy and distribute 
 * Software only when embedded on a Microchip microcontroller or digital 
