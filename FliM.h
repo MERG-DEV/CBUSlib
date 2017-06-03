@@ -151,7 +151,7 @@ typedef union {
 } NodeVarTable;
 
 //extern const NodeVarTable nodeVarTable;         // const so it resides in flash
-extern __rom const ModuleNvDefs * NV;                 // pointer to const
+extern ModuleNvDefs * NV;                 // pointer to NVs in Flash (or perhaps RAM if cache is used)
 #ifdef __XC8__
 //extern const NodeBytes *	NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
 //extern EventTableEntry	*EVTPtr;    // pointer to Event variables table. /

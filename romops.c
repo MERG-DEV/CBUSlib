@@ -265,7 +265,7 @@ _endasm
 
 
 /**
- * Write a byte to the FLASH image, flush current image to Flash if necessary.
+ * Write a byte to the FLASH image. You may need to flush current image to Flash if necessary.
  * @param addr the destination address of the byte to be written
  * @param data the data byte to be written
  */

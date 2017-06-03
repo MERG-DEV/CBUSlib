@@ -164,7 +164,7 @@ void doNnclr(void) {
     if (flimState == fsFLiMLearn) {
         for (unsigned char tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
             // set the free flag
-            writeFlashImage((BYTE*)&(eventTable[tableIndex].flags), 0xff);
+            writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
         }
         flushFlashImage();
 #ifdef HASH_TABLE
@@ -238,7 +238,7 @@ void doEvuln(WORD nodeNumber, WORD eventNumber) {
     if (tableIndex == NO_INDEX) return; // not found
     // found the event to delete
     // set the free flag
-    writeFlashImage((BYTE*)&(eventTable[tableIndex].flags), 0xff);
+    writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
     // Now follow the next pointer
     while (eventTable[tableIndex].flags.continues) {
         tableIndex = eventTable[tableIndex].next;
@@ -246,7 +246,7 @@ void doEvuln(WORD nodeNumber, WORD eventNumber) {
         // not going to check as I wouldn't know what to do if it wasn't set
                     
         // set the free flag
-        writeFlashImage((BYTE*)&(eventTable[tableIndex].flags), 0xff);
+        writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
     }
 #ifdef HASH_TABLE
     // easier to rebuild from scratch
@@ -359,9 +359,9 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
             // found a free slot, initialise it
             setFlashWord((WORD*)&eventTable[tableIndex].event.NN, nodeNumber);
             setFlashWord((WORD*)&eventTable[tableIndex].event.EN, eventNumber);
-            writeFlashImage((BYTE*)&eventTable[tableIndex].flags, 0);
+            writeFlashByte((BYTE*)&eventTable[tableIndex].flags, 0);
             for (unsigned char e = 0; e < EVENT_TABLE_WIDTH; e++) {
-                writeFlashImage((BYTE*)&eventTable[tableIndex].evs[e], NO_ACTION);
+                writeFlashByte((BYTE*)&eventTable[tableIndex].evs[e], NO_ACTION);
             }
             error = writeEv(tableIndex, evNum, evVal);
             if (error) {
@@ -434,12 +434,12 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
                      // found a free slot, initialise it
                     setFlashWord((WORD*)&eventTable[nextIdx].event.NN, 0xff); // this field not used
                     setFlashWord((WORD*)&eventTable[nextIdx].event.EN, 0xff); // this field not used
-                    writeFlashImage((BYTE*)&eventTable[nextIdx].flags, 1);    // set continuation flag
+                    writeFlashByte((BYTE*)&eventTable[nextIdx].flags, 1);    // set continuation flag
                     for (unsigned char e = 0; e < EVENT_TABLE_WIDTH; e++) {
-                        writeFlashImage((BYTE*)&eventTable[nextIdx].evs[e], NO_ACTION); // clear the EVs
+                        writeFlashByte((BYTE*)&eventTable[nextIdx].evs[e], NO_ACTION); // clear the EVs
                     }
                     // set the next of the previous in chain
-                    writeFlashImage((BYTE*)&eventTable[tableIndex].next, nextIdx);
+                    writeFlashByte((BYTE*)&eventTable[tableIndex].next, nextIdx);
                     break;
                 }
             }
@@ -450,7 +450,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
         } 
     }
     // now write the EV
-    writeFlashImage((BYTE*)&eventTable[tableIndex].evs[evNum], evVal);
+    writeFlashByte((BYTE*)&eventTable[tableIndex].evs[evNum], evVal);
     return 0;
 }
  

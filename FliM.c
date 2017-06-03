@@ -51,7 +51,9 @@
 
 extern BOOL validateNV(BYTE NVindex, BYTE oldValue, BYTE newValue);
 extern void actUponNVchange(BYTE NVindex, BYTE NVvalue);
-
+#ifdef NV_CACHE
+extern void loadNvCache();
+#endif
 
 #ifdef __XC8__
 WORD    deviceid;      // Device id in config memory
@@ -74,7 +76,7 @@ extern const NodeVarTable nodeVarTable @AT_NV ;
 
 
 #ifdef __XC8__
-const BYTE * NvBytePtr;            // Node variables in ROM as bytes
+const BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //EventTableEntry     *EVTPtr;      // Event table in ROM
 #else
 rom	NodeBytes 	*NxVPtr;     // Node variables in ROM
@@ -103,7 +105,7 @@ void flimInit(void) {
     // Initialise node variables
 
 	NvBytePtr = nodeVarTable.nodevars;         // Node Variables table
-    NV = &(nodeVarTable.moduleNVs);
+//    NV = &(nodeVarTable.moduleNVs);
 //	EVTPtr = eventTable;           // Event table
 	NV_changed = FALSE; 
 } // flimInit
@@ -503,6 +505,9 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         } else {
             doError(CMDERR_INV_NV_VALUE);
         }
+#ifdef NV_CACHE
+        loadNvCache();
+#endif
     }
 } // doNvset
 
