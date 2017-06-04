@@ -60,10 +60,20 @@
     #define EEIF PIR2bits.EEIF
 #endif
 
+#ifdef __18CXX
+#ifdef CPUF18K
+    #define _FLASH_WRITE_SIZE 64
+#endif
+
+#ifdef CPUF18F
+    #define _FLASH_WRITE_SIZE TBD
+#endif
+#endif
+
 
 
 // Definitions for inline assembler
-#ifdef __C18__
+#ifdef __18CXX
 #define W   0
 #define F   1
 #endif 
@@ -92,7 +102,7 @@ void writeFlashImage(BYTE * addr, BYTE data);
 #define setFlashByte( a, b )    writeFlashImage( a, b)
 void setFlashWord( WORD * flashAddr, WORD flashData );
 void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize );
-void flushFlashImage( void );;
+void flushFlashImage( void );
 BYTE readFlashBlock(WORD flashAddr);
 
 BYTE ee_read(WORD addr);

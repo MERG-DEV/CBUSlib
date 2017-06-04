@@ -72,15 +72,17 @@ WORD    deviceid;      // Device id in config memory
 enum FLiMStates flimState;          // This is stored in EEPROM with node id
 enum FLiMStates prevFlimState;      // Store previous state in setup mode
 TickValue   switchTime;             // Debouncing FLiM switch
+
+
+
+#ifdef __XC8
 extern const NodeVarTable nodeVarTable @AT_NV ;
-
-
-#ifdef __XC8__
 const BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //EventTableEntry     *EVTPtr;      // Event table in ROM
 #else
-rom	NodeBytes 	*NxVPtr;     // Node variables in ROM
-rom EventTableEntry     *EVTPtr;    // Event table in ROM
+extern rom NodeVarTable nodeVarTable;
+rom BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
+//rom EventTableEntry     *EVTPtr;    // Event table in ROM
    
 #pragma code APP
 #pragma udata
@@ -490,6 +492,7 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         doError(CMDERR_INV_NV_IDX);
     } else {
         WORD flashIndex;
+        BYTE oldValue;
 
         // *NVPtr[--NVindex] = NVvalue; // Set value of node variable (NV counts from 1 in opcode, adjust index to count from zero)
 
@@ -497,7 +500,7 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         flashIndex += NVindex;
         flashIndex--;
 
-        BYTE oldValue = NvBytePtr[--NVindex];
+        oldValue = NvBytePtr[--NVindex];
         if (validateNV(NVindex, oldValue, NVvalue)) {
             writeFlashByte((BYTE *)flashIndex, NVvalue);
             actUponNVchange(NVindex, NVvalue);

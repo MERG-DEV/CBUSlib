@@ -1,4 +1,5 @@
-#ifdef __C18
+#include "devincs.h"
+#ifdef __18CXX
 // Modified from Microchip standard version for different load address due to boot loader 
 
 /* Copyright (c)1999 Microchip Technology */
@@ -61,3 +62,5 @@ fill_loop:    movwf   POSTINC1, 0
   goto loop;
 }                               /* end _startup() */
 #endif
+//
+

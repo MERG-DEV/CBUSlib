@@ -123,8 +123,12 @@ typedef struct {
     EventTableFlags flags;
     BYTE evs[EVENT_TABLE_WIDTH];
 } EventTable;
+#ifdef __XC8
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
-
+#else
+#pragma romdata myEvents=AT_EVENTS
+const rom EventTable eventTable[NUM_EVENTS];
+#endif
 #define NO_INDEX    0xff
 
  
@@ -162,7 +166,8 @@ void eventsInit( void ) {
  */
 void doNnclr(void) {
     if (flimState == fsFLiMLearn) {
-        for (unsigned char tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
+        unsigned char tableIndex;
+        for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
             // set the free flag
             writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
         }
@@ -184,7 +189,8 @@ void doNnevn(void) {
     //Pete's original code kept a counter in EEPROM but here I count the number
     // of unused slots.
     unsigned char count = 0;
-    for (unsigned char i=0; i<NUM_EVENTS; i++) {
+    unsigned char i;
+    for (i=0; i<NUM_EVENTS; i++) {
         if (eventTable[i].flags.freeEntry) {
             count++;
         }
@@ -196,7 +202,8 @@ void doNnevn(void) {
 // Read all stored events
 void doNerd(void) {
 	//TODO send response OPC_ENRSP (presumably once for each event and EV?  Study FCU interaction with existing modules)
-    for (unsigned char tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
+    unsigned char tableIndex;
+    for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         // if its not free and not a continuation then it is start of an event
         if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
             cbusMsg[d3] = eventTable[tableIndex].event.NN>>8;
@@ -218,7 +225,8 @@ void doRqevn(void) {
     //Pete's original code kept a counter in EEPROM but here I count the number
     // of used slots.
     unsigned char count = 0;
-    for (unsigned char i=0; i<NUM_EVENTS; i++) {
+    unsigned char i;
+    for (i=0; i<NUM_EVENTS; i++) {
         if (( ! eventTable[i].flags.freeEntry) && ( ! eventTable[i].flags.continuation)) {
             count++;    
         }
@@ -293,6 +301,7 @@ void doReval(void) {
  * @param evNum
  */
 void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
+    int evVal;
     // get the event
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
     if (tableIndex == NO_INDEX) {
@@ -302,7 +311,7 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
     cbusMsg[d3] = eventNumber >> 8;
     cbusMsg[d4] = eventNumber & 0x00FF;
     cbusMsg[d5] = evNum;
-    int evVal = getEv(tableIndex, evNum);
+    evVal = getEv(tableIndex, evNum);
     if (evVal >= 0) {
         cbusMsg[d6] = getEv(tableIndex, evNum);
         cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
@@ -356,11 +365,12 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
     // event start not found so find an empty slot and create one
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         if (eventTable[tableIndex].flags.freeEntry) {
+            unsigned char e;
             // found a free slot, initialise it
             setFlashWord((WORD*)&eventTable[tableIndex].event.NN, nodeNumber);
             setFlashWord((WORD*)&eventTable[tableIndex].event.EN, eventNumber);
             writeFlashByte((BYTE*)&eventTable[tableIndex].flags, 0);
-            for (unsigned char e = 0; e < EVENT_TABLE_WIDTH; e++) {
+            for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
                 writeFlashByte((BYTE*)&eventTable[tableIndex].evs[e], NO_ACTION);
             }
             error = writeEv(tableIndex, evNum, evVal);
@@ -390,7 +400,8 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
 unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
 #ifdef HASH_TABLE
     unsigned char hash = getHash(nodeNumber, eventNumber);
-    for (unsigned char chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+    unsigned char chainIdx;
+    for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
         unsigned char tableIndex = eventChains[hash][chainIdx];
         if (tableIndex == NO_INDEX) return NO_INDEX;
         if ((eventTable[tableIndex].event.NN == nodeNumber) && (eventTable[tableIndex].event.EN == eventNumber)) {
@@ -431,11 +442,12 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
                 if (eventTable[nextIdx].flags.freeEntry) {
+                    unsigned char e;
                      // found a free slot, initialise it
                     setFlashWord((WORD*)&eventTable[nextIdx].event.NN, 0xff); // this field not used
                     setFlashWord((WORD*)&eventTable[nextIdx].event.EN, 0xff); // this field not used
                     writeFlashByte((BYTE*)&eventTable[nextIdx].flags, 1);    // set continuation flag
-                    for (unsigned char e = 0; e < EVENT_TABLE_WIDTH; e++) {
+                    for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
                         writeFlashByte((BYTE*)&eventTable[nextIdx].evs[e], NO_ACTION); // clear the EVs
                     }
                     // set the next of the previous in chain
@@ -556,8 +568,10 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
  */
 void deleteAction(unsigned char action) {
     if (action != NO_ACTION) {
-        for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-            for (unsigned char e=0; e<EVENT_TABLE_WIDTH; e++) {
+        unsigned char tableIndex;
+        for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+            unsigned char e;
+            for (e=0; e<EVENT_TABLE_WIDTH; e++) {
                 if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
                     if (eventTable[tableIndex].evs[e] == action) {
                         writeEv(tableIndex, 0, NO_ACTION);
@@ -634,9 +648,11 @@ void rebuildHashtable(void) {
     // invalidate the current hash table
     unsigned char hash;
     unsigned char chainIdx;
+    unsigned char tableIndex;
 #ifdef PRODUCED_EVENTS
     // first initialise to nothing
-    for (unsigned char action=0; action<NUM_PRODUCER_ACTIONS; action++) {
+    unsigned char action;
+    for (action=0; action<NUM_PRODUCER_ACTIONS; action++) {
         action2Event[action] = NO_ACTION;
     }
 #endif
@@ -646,7 +662,8 @@ void rebuildHashtable(void) {
         }
     }
     // now scan the event2Action table and populate the hash and lookup tables
-    for (unsigned char tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
+    
+    for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
             // found the start of an event definition
 #ifdef PRODUCED_EVENTS

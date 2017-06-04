@@ -52,9 +52,12 @@ extern "C" {
 #endif
 
 // Include the appropriate definition file for the processor that has been selected for this project
-
+#ifdef __XC8__
+#include <xc.h>
+#else
 #include <p18cxxx.h>
-
+#endif
+    
 // Set CPUF to the PIC18 series family, so that we can do conditional assembly for the k series and original PIC18 processors
 // This is defined only for the CAN processors at present
           

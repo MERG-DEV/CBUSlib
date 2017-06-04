@@ -146,18 +146,19 @@ typedef struct
  */
 typedef	BYTE		NodeBytes[];
 typedef union {
-        NodeBytes   	nodevars;               // Do not change this as it is used by FLiM.c
         ModuleNvDefs    moduleNVs;
+        NodeBytes   	nodevars;               // Do not change this as it is used by FLiM.c
 } NodeVarTable;
 
 //extern const NodeVarTable nodeVarTable;         // const so it resides in flash
+#ifdef __XC8
 extern ModuleNvDefs * NV;                 // pointer to NVs in Flash (or perhaps RAM if cache is used)
-#ifdef __XC8__
 //extern const NodeBytes *	NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
 //extern EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
 #else
-extern rom	NodeBytes 	*NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
-extern rom	EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
+extern rom ModuleNvDefs * NV;                 // pointer to NVs in Flash (or perhaps RAM if cache is used)
+//extern rom	NodeBytes 	*NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
+//extern rom	EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
 #endif
 
 

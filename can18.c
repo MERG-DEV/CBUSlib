@@ -54,7 +54,7 @@
 
 #include "can18.h"
 #include <string.h>
-#ifdef __C18__
+#ifdef __18CXX
 #pragma udata CANTX_FIFO
 far CanPacket canTxFifo[CANTX_FIFO_LEN];
 #pragma udata CANRX_FIFO

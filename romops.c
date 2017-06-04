@@ -54,7 +54,7 @@
  * in a single operation. This reduces the number of writes to each page of flash
  * and extending its life.
  */
-#include <xc.h>
+#include "devincs.h"
 #include "romops.h"
 #include "EEPROM.h"
 
@@ -121,10 +121,10 @@ void initRomOps() {
     INTCONbits.GIE = 1;     // enable all interrupts
     EECON1bits.WREN = FALSE;
 #else
-    INTCONbits.GIE = 0;     // disable all interrupts
     WORD ptr;
     BYTE fwCounter;
-
+    INTCONbits.GIE = 0;     // disable all interrupts
+    
     ptr= (WORD)flashbuf;
     TBLPTR=flashblock;
     FSR0=ptr;
@@ -341,12 +341,18 @@ BYTE ee_read(WORD addr) {
     EECON1bits.RD = 1;			/* EEPROM Read */
     while (EECON1bits.RD)
         ;
+#ifdef __XC8
     asm("NOP");                 /* data available after a NOP */
     asm("NOP");                 /* data available after a NOP */
     asm("NOP");                 /* data available after a NOP */
     asm("NOP");                 /* data available after a NOP */
     asm("NOP");                 /* data available after a NOP */
     asm("NOP");                 /* data available after a NOP */
+#else
+     _asm
+        nop
+    _endasm
+#endif
     return EEDATA;
 }
 
@@ -417,7 +423,7 @@ WORD readCPUType( void ) {
 #ifdef __XC8__
     return devId;
 #else
-    id = *(far rom WORD*)0x3FFFFE;
+    WORD id = *(far rom WORD*)0x3FFFFE;
 
     TBLPTRU = 0;
     INTCONbits.GIE = 1;
