@@ -144,11 +144,18 @@ const rom EventTable eventTable[NUM_EVENTS];
  */
 
 #ifdef PRODUCED_EVENTS
+#pragma udata large_event_hash
 // the lookup table to find an EventTable entry by Producer action
-BYTE action2Event[NUM_PRODUCER_ACTIONS];
+BYTE action2Event[NUM_PRODUCER_ACTIONS];    // MIO: 66 bytes
 #endif
-// The hashtable to find the EventTable entry by Event
-BYTE eventChains[HASH_LENGTH][CHAIN_LENGTH];
+// The hashtable to find the EventTable entry by Event.
+// This RAM hash table will probably be more than 256 bytes. With C18 this leads to
+// an error:
+//Error - section '.udata_events.o' can not fit the section. Section '.udata_events.o' length=0x000002c2
+//
+
+BYTE eventChains[HASH_LENGTH][CHAIN_LENGTH];    // MIO: 32*20 bytes = 640
+#pragma udata 
 #endif
 
 /**
