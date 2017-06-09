@@ -57,6 +57,7 @@
 #include "devincs.h"
 #include "romops.h"
 #include "EEPROM.h"
+#include "hwsettings.h"
 
 //#pragma romdata BOOTFLAG
 //rom BYTE bootflag = 0;
@@ -98,7 +99,7 @@ void initRomOps() {
     
 #ifdef __XC8__
     TBLPTR = flashblock & ~(64 - 1); //force row boundary
-    INTCONbits.GIE = 0;     // disable all interrupts ERRATA says this is needed before TBLWT
+    di();     // disable all interrupts ERRATA says this is needed before TBLWT
     for (unsigned char i=0; i<64; i++) {
         TABLAT = flashbuf[i];
         asm("TBLWT*+");
@@ -118,12 +119,12 @@ void initRomOps() {
     EECON2 = 0x55;
     EECON2 = 0xAA;
     EECON1bits.WR = TRUE;
-    INTCONbits.GIE = 1;     // enable all interrupts
+    ei();     // enable all interrupts
     EECON1bits.WREN = FALSE;
 #else
     WORD ptr;
     BYTE fwCounter;
-    INTCONbits.GIE = 0;     // disable all interrupts
+    di();     // disable all interrupts
     
     ptr= (WORD)flashbuf;
     TBLPTR=flashblock;
@@ -160,7 +161,7 @@ _endasm
 _asm
         TBLRDPOSTINC            // Table pointer ready for next 32
 _endasm
-        INTCONbits.GIE = 1;     // enable all interrupts
+        ei();     // enable all interrupts
 #endif
 
 #ifdef CPUF18F
@@ -180,11 +181,11 @@ void  writeFlashWithErase(void) {
     EECON1bits.CFGS = 0;    // 0=Program memory/EEPROM, 1=ConfigBits
     EECON1bits.WREN = 1;    // enable write to memory
     EECON1bits.FREE = 1;    // enable row erase operation
-    INTCONbits.GIE = 0;     // disable all interrupts
+    di();     // disable all interrupts
     EECON2 = 0x55;          // write 0x55
     EECON2 = 0xaa;          // write 0xaa
     EECON1bits.WR = 1;      // start erasing
-    INTCONbits.GIE = 1;     // enable all interrupts
+    ei();     // enable all interrupts
     EECON1bits.WREN = 0;    // disable write to memory
     //Now write data to flash
     writeFlashShort();
@@ -368,7 +369,7 @@ void ee_write(WORD addr, BYTE data) {
     EECON1bits.EEPGD = 0;       /* Point to DATA memory */
     EECON1bits.CFGS = 0;        /* Access program FLASH/Data EEPROM memory */
     EECON1bits.WREN = 1;        /* Enable writes */
-    INTCONbits.GIE = 0;         /* Disable Interrupts */
+    di();         /* Disable Interrupts */
     EECON2 = 0x55;
     EECON2 = 0xAA;
     EECON1bits.WR = 1;
@@ -380,7 +381,7 @@ void ee_write(WORD addr, BYTE data) {
     _asm nop
          nop _endasm
 #endif
-    INTCONbits.GIE = 1;         /* Enable Interrupts */
+    ei();         /* Enable Interrupts */
     while (!EEIF)
         ;
     EEIF = 0;
@@ -424,10 +425,23 @@ WORD readCPUType( void ) {
     return devId;
 #else
     WORD id = *(far rom WORD*)0x3FFFFE;
-
-    TBLPTRU = 0;
-    INTCONbits.GIE = 1;
-
     return( id );
 #endif
+    
+/*
+        TBLPTR = 0xFFFE;
+        TBLPTRU = 0x3F;
+        EECON1=0X80;
+        di();
+_asm
+        TBLRDPOSTINC
+_endasm
+        b1 = TBLAT;
+_asm
+        TBLRDPOSTINC
+_endasm
+        b2 = TBLAT;
+        ei();
+        return (WORD)b2<<8 | b1;
+ */
 }

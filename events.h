@@ -98,6 +98,7 @@ typedef struct {
 //
 
 #define NO_ACTION           0
+#define NO_INDEX            0xff
 
 #define     EVENT_SET_MASK  0b10010000
 #define     EVENT_CLR_MASK  0b00000110

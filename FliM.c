@@ -51,6 +51,13 @@
 
 extern BOOL validateNV(BYTE NVindex, BYTE oldValue, BYTE newValue);
 extern void actUponNVchange(BYTE NVindex, BYTE NVvalue);
+extern BYTE evtIdxToTableIndex(BYTE evtIdx);
+extern BYTE tableIndexToEvtIdx(BYTE tableIndex);
+extern BOOL validStart(BYTE tableIndex);
+extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
+extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
+extern void clearAllEvents();
+
 #ifdef NV_CACHE
 extern void loadNvCache();
 #endif
@@ -470,7 +477,6 @@ void doNvrd(BYTE NVindex)
         WORD flashIndex;
         flashIndex = AT_NV;
         flashIndex += NVindex;
-        flashIndex--;
         
         // Get NV index and send response with value of NV
         cbusMsg[d0] = OPC_NVANS;
@@ -498,7 +504,6 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
 
         flashIndex = AT_NV;
         flashIndex += NVindex;
-        flashIndex--;
 
         oldValue = NvBytePtr[--NVindex];
         if (validateNV(NVindex, oldValue, NVvalue)) {
@@ -569,6 +574,114 @@ void doRqmn(void) {
     }
     cbusSendMsg( 0, cbusMsg );
 } // doRqmn
+
+
+/**
+ * Clear all Events.
+ */
+void doNnclr(void) {
+    if (flimState == fsFLiMLearn) {
+        clearAllEvents();
+    } else {
+            cbusMsg[d3] = CMDERR_NOT_LRN;
+            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+ 	}
+} //doNnclr
+
+/**
+ * Teach event whilst in learn mode.
+ * Teach or reteach an event associated with an action. 
+
+ * @param nodeNumber
+ * @param eventNumber
+ * @param evNum the EV number
+ * @param evVal the EV value
+ */
+void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) {
+    unsigned char error;
+    // evNum starts at 1 - convert to zero based
+    if (evNum == 0) {
+        cbusMsg[d3] = CMDERR_INV_EV_IDX;
+        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        return;
+    }
+    evNum--;
+    error = addEvent(nodeNumber, eventNumber, evNum, evVal);
+    if (error) {
+        // failed to write
+        cbusMsg[d3] = error;
+        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        return;
+    }
+    cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
+    return;
+}
+
+/**
+ * Read an event variable by index.
+ * TODO check meaning of EN# Again not clear what the CBUS spec actually needs here as the Index is implementation
+ * specific.
+ */
+void doReval(void) {
+	// Get event index and event variable number from message
+	// Send response with EV value
+    unsigned char tableIndex = evtIdxToTableIndex(cbusMsg[d3]);
+    unsigned char evNum = cbusMsg[d4];
+    
+    // check it is a valid index
+    if (tableIndex < NUM_EVENTS) {
+        if (validStart(tableIndex)) {
+            int evVal = getEv(tableIndex, evNum);
+            if (evVal >= 0) {
+                cbusMsg[5] = getEv(tableIndex, evNum);
+                cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
+                return;
+            }
+            cbusMsg[d3] = CMDERR_INV_EV_IDX;
+            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        }
+    }
+    cbusMsg[d3] = CMDERR_INVALID_EVENT;
+    cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+} // doReval
+
+/**
+ * Unlearn event.
+ * @param nodeNumber
+ * @param eventNumber
+ */
+void doEvuln(WORD nodeNumber, WORD eventNumber) {
+    removeEvent(nodeNumber, eventNumber);
+    // Don't send a WRACK
+}
+
+/**
+ * Read an event variable by event id.
+ * TODO check meaning of EN#
+ * @param nodeNumber
+ * @param eventNumber
+ * @param evNum
+ */
+void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
+    int evVal;
+    // get the event
+    unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
+    if (tableIndex == NO_INDEX) {
+        cbusMsg[d3] = CMDERR_INVALID_EVENT;
+        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+    }
+    cbusMsg[d3] = eventNumber >> 8;
+    cbusMsg[d4] = eventNumber & 0x00FF;
+    cbusMsg[d5] = evNum;
+    evVal = getEv(tableIndex, evNum);
+    if (evVal >= 0) {
+        cbusMsg[d6] = getEv(tableIndex, evNum);
+        cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
+        return;
+    }
+    cbusMsg[d3] = CMDERR_INV_EV_IDX;
+    cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+}
 
 
 /**

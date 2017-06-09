@@ -129,7 +129,7 @@ const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 #pragma romdata myEvents=AT_EVENTS
 const rom EventTable eventTable[NUM_EVENTS];
 #endif
-#define NO_INDEX    0xff
+
 
  
 #ifdef HASH_TABLE
@@ -168,12 +168,17 @@ void eventsInit( void ) {
 #endif
 } //eventsInit
 
-/**
- * Clear all Events.
- */
-void doNnclr(void) {
-    if (flimState == fsFLiMLearn) {
-        unsigned char tableIndex;
+BOOL validStart(BOOL tableIndex) {
+    if (( !eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+
+void clearAllEvents() {
+    unsigned char tableIndex;
         for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
             // set the free flag
             writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
@@ -182,11 +187,7 @@ void doNnclr(void) {
 #ifdef HASH_TABLE
         rebuildHashtable();
 #endif
-    } else {
-            cbusMsg[d3] = CMDERR_NOT_LRN;
-            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
- 	}
-} //doNnclr
+}
 
 /**
  * Read number of available event slots.
@@ -212,7 +213,7 @@ void doNerd(void) {
     unsigned char tableIndex;
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         // if its not free and not a continuation then it is start of an event
-        if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+        if (validStart(tableIndex)) {
             cbusMsg[d3] = eventTable[tableIndex].event.NN>>8;
             cbusMsg[d4] = eventTable[tableIndex].event.NN&0xff;
             cbusMsg[d5] = eventTable[tableIndex].event.EN>>8;
@@ -234,7 +235,7 @@ void doRqevn(void) {
     unsigned char count = 0;
     unsigned char i;
     for (i=0; i<NUM_EVENTS; i++) {
-        if (( ! eventTable[i].flags.freeEntry) && ( ! eventTable[i].flags.continuation)) {
+        if (validStart(i)) {
             count++;    
         }
     }
@@ -242,15 +243,17 @@ void doRqevn(void) {
     cbusSendOpcMyNN( 0, OPC_NUMEV, cbusMsg );
 } // doRqevn
 
+
 /**
- * Unlearn event.
+ * Remove event.
  * @param nodeNumber
  * @param eventNumber
+ * @return error or 0 for success
  */
-void doEvuln(WORD nodeNumber, WORD eventNumber) {
+unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
     // need to delete this action from the Event table. 
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
-    if (tableIndex == NO_INDEX) return; // not found
+    if (tableIndex == NO_INDEX) return CMDERR_INV_EV_IDX; // not found
     // found the event to delete
     // set the free flag
     writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
@@ -268,88 +271,24 @@ void doEvuln(WORD nodeNumber, WORD eventNumber) {
     rebuildHashtable();
 #endif
     flushFlashImage();
-    // Don't send a WRACK
+
+    return 0;
 }
-
 /**
- * Read an event variable by index.
- * TODO check meaning of EN# Again not clear what the CBUS spec actually needs here as the Index is implementation
- * specific.
- */
-void doReval(void) {
-	// Get event index and event variable number from message
-	// Send response with EV value
-    unsigned char tableIndex = evtIdxToTableIndex(cbusMsg[d3]);
-    unsigned char evNum = cbusMsg[d4];
-    
-    // check it is a valid index
-    if (tableIndex < NUM_EVENTS) {
-        if (( !eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
-            int evVal = getEv(tableIndex, evNum);
-            if (evVal >= 0) {
-                cbusMsg[5] = getEv(tableIndex, evNum);
-                cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
-                return;
-            }
-            cbusMsg[d3] = CMDERR_INV_EV_IDX;
-            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-        }
-    }
-    cbusMsg[d3] = CMDERR_INVALID_EVENT;
-    cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-} // doReval
-
-
-/**
- * Read an event variable by event id.
- * TODO check meaning of EN#
- * @param nodeNumber
- * @param eventNumber
- * @param evNum
- */
-void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
-    int evVal;
-    // get the event
-    unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
-    if (tableIndex == NO_INDEX) {
-        cbusMsg[d3] = CMDERR_INVALID_EVENT;
-        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-    }
-    cbusMsg[d3] = eventNumber >> 8;
-    cbusMsg[d4] = eventNumber & 0x00FF;
-    cbusMsg[d5] = evNum;
-    evVal = getEv(tableIndex, evNum);
-    if (evVal >= 0) {
-        cbusMsg[d6] = getEv(tableIndex, evNum);
-        cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
-        return;
-    }
-    cbusMsg[d3] = CMDERR_INV_EV_IDX;
-    cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-}
-
-/**
- * Teach event whilst in learn mode.
+ * Add an event/EV.
  * Teach or reteach an event associated with an action. 
- * The may (optionally) need to create a new event and then optionally
+ * This may (optionally) need to create a new event and then optionally
  * create additional chained entries. All newly allocated table entries need
  * to be initialised.
  * @param nodeNumber
  * @param eventNumber
- * @param evNum the EV number
+ * @param evNum the EV index
  * @param evVal the EV value
- * @return 
+ * @return error number or 0 for success
  */
-void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
+unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) {
     unsigned char tableIndex;
     unsigned char error;
-    // evNum starts at 1 - convert to zero based
-    if (evNum == 0) {
-        cbusMsg[d3] = CMDERR_INV_EV_IDX;
-        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-        return;
-    }
-    evNum--;
     // do we currently have an event
     tableIndex = findEvent(nodeNumber, eventNumber);
     if (tableIndex != NO_INDEX) {
@@ -357,17 +296,14 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
         error = writeEv(tableIndex, evNum, evVal);
         if (error) {
             // failed to write
-            cbusMsg[d3] = CMDERR_INV_EV_IDX;
-            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-            return;
+            return CMDERR_INV_EV_IDX;
         }
         // success
         flushFlashImage();
 #ifdef HASH_TABLE
         rebuildHashtable();
 #endif
-        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
-        return;
+        return 0;
     }
     // event start not found so find an empty slot and create one
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
@@ -383,17 +319,14 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal ) {
             error = writeEv(tableIndex, evNum, evVal);
             if (error) {
                 // failed to write
-                cbusMsg[d3] = CMDERR_INV_EV_IDX;
-                cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-                return;
+                return CMDERR_INV_EV_IDX;
             }
             // success
             flushFlashImage();
 #ifdef HASH_TABLE
             rebuildHashtable();
 #endif
-            cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
-            return;
+            return 0;
         }
     }
 }
@@ -480,7 +413,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
  * @return the ev value or -1 if error
  */
 int getEv(unsigned char tableIndex, unsigned char evNum) {
-    if ((eventTable[tableIndex].flags.continuation) || (eventTable[tableIndex].flags.freeEntry)) {
+    if ( ! validStart(tableIndex)) {
         // not a valid start
         return -1;
     }
@@ -579,7 +512,7 @@ void deleteAction(unsigned char action) {
         for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
             unsigned char e;
             for (e=0; e<EVENT_TABLE_WIDTH; e++) {
-                if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+                if ( ! eventTable[tableIndex].flags.freeEntry) {
                     if (eventTable[tableIndex].evs[e] == action) {
                         writeEv(tableIndex, 0, NO_ACTION);
                     }
@@ -608,7 +541,7 @@ const Event * getProducedEvent(unsigned char action) {
      return &eventTable[action2Event[action]].event;
 #else
     for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-        if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+        if (validStart(tableIndex)) {
             if (eventTable[tableIndex].evs[0] == action) {
                 return &eventTable[tableIndex];
             }
@@ -671,7 +604,7 @@ void rebuildHashtable(void) {
     // now scan the event2Action table and populate the hash and lookup tables
     
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
-        if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+        if (validStart(tableIndex)) {
             // found the start of an event definition
 #ifdef PRODUCED_EVENTS
             // EV#1 is used to store the Produced event's action
