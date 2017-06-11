@@ -46,6 +46,7 @@
 #include "GenericTypeDefs.h"
 #include "romops.h"
 #include "EEPROM.h"
+#include "module.h"
 
 
 // The parameters passed include a bus number to support hardware with multiple interfaces,
@@ -119,6 +120,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
   txFifoUsage = 0;
   rxFifoUsage = 0;
 
+  IPR5 = CAN_INTERRUPT_PRIORITY;    // CAN interrupts priority
 
   // Put module into Configuration mode.
   CANCON = 0b10000000;
@@ -361,7 +363,6 @@ BOOL canTX( CanPacket *msg )
 
      TXB0CONbits.TXREQ = 1;    // Initiate transmission
      fullUp = FALSE;
-     TXBnIE = 1;
   }
   else  // load it into software fifo
   {
@@ -386,7 +387,7 @@ BOOL canTX( CanPacket *msg )
         maxCanTxFifo = hiIndex - txIndexNextUsed;
   }
 
-  TXBnIE = 1;  // Enable transmit buffer interrupt
+  PIE5bits.TXB0IE = 1;  // Enable transmit buffer interrupt
  
   return !fullUp;   // Return true for successfully submitted for transmission
 }
@@ -433,12 +434,12 @@ void checkTxFifo( void )
 
             TXB0CONbits.TXREQ = 1;    // Initiate transmission
 
-            if (txIndexNextFree == 0xFF)
+            if (txIndexNextFree == 0xFF) {
                 txIndexNextFree = txIndexNextUsed; // clear full status
-
-            if (++txIndexNextUsed == CANTX_FIFO_LEN )
+            }
+            if (++txIndexNextUsed == CANTX_FIFO_LEN ) {
                 txIndexNextUsed = 0;
-
+            }
             TXBnIE = 1;  // enable transmit buffer interrupt
         }
         else
@@ -453,23 +454,21 @@ void checkTxFifo( void )
         TXBnIF = 0;
         TXBnIE = 1;
     }
-
- 
-
 } // checkTxFifo
 
-// Called by high priority ISR at 1 sec intervals to check for timeout
+// Called by ISR regularly to check for timeout
 
 void checkCANTimeout( void )
 {
-    if (canTransmitTimeout.Val != 0)
+    if (canTransmitTimeout.Val != 0) {
         if (tickTimeSince(canTransmitTimeout) > CAN_TX_TIMEOUT)
         {    
             canTransmitFailed = TRUE;
             txTimeoutCount++;
             TXB0CONbits.TXREQ = 0;  // abort timed out packet
             checkTxFifo();          //  See if another packet is waiting to be sent
-        }    
+        }
+    }
 }
 
 
@@ -525,7 +524,7 @@ BOOL canbusRecv(CanPacket *msg)
 
             // Record and Clear any previous invalid message bit flag.
             if (IRXIF) {
-              IRXIF = 0;
+                 IRXIF = 0;
             }
             // Mark that this buffer is read and empty.
             ptr->buffer[con] &= 0x7f;    // clear RXFUL bit
@@ -737,15 +736,17 @@ void canTxError( void )
 
 void canInterruptHandler( void )
 {
-    if (FIFOWMIF)       // Receive buffer high water mark, so move data into software fifo
+    if (FIFOWMIF) {      // Receive buffer high water mark, so move data into software fifo
         canFillRxFifo();
-
-    if (ERRIF)
+    }
+    if (ERRIF) {
         canTxError();
-
-    if (TXBnIF)
+    }
+    if (TXBnIF) {
+LATCbits.LATC5 = 1;
         checkTxFifo();
-
+LATCbits.LATC5 = 0;
+    }
     checkCANTimeout();
 }
 

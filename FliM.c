@@ -136,6 +136,16 @@ void FLiMSWCheck( void ) {
             if (!FLiM_SW) {
                 prevFlimState = flimState;
                 flimState = fsPressed;
+                
+                        
+                cbusMsg[d1] = (nodeID >>8)&0xff;
+                cbusMsg[d2] = nodeID & 0xff;
+    // Acknowledge new node id
+    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );
+                        
+                        
+                        
+                        
                 switchTime.Val = tickGet();
             }
             break;
@@ -470,8 +480,8 @@ void doRqnpn(BYTE idx) {
  * @param NVindex the index of the Node Variable
  */
 void doNvrd(BYTE NVindex)
-{
-    if (NVindex > NV_NUM) {
+{   // check the bounds of NVindex. It starts at 1
+    if ((NVindex == 0) || (NVindex >= NV_NUM)) {
         doError(CMDERR_INV_NV_IDX);
     } else {
         WORD flashIndex;
@@ -493,8 +503,8 @@ void doNvrd(BYTE NVindex)
  * @param NVvalue the new NV value
  */
 void doNvset(BYTE NVindex, BYTE NVvalue)
-{
-    if (NVindex > NV_NUM) {
+{   // check the bounds of NVindex. It starts at 1
+    if ((NVindex == 0) || (NVindex >= NV_NUM)) {
         doError(CMDERR_INV_NV_IDX);
     } else {
         WORD flashIndex;

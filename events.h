@@ -115,6 +115,7 @@ extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 extern void deleteAction(unsigned char action);
 extern const Event * getProducedEvent(unsigned char action);
 extern int getEv(unsigned char tableIndex, unsigned char evNum);
+extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 
 
 // Internal functions
