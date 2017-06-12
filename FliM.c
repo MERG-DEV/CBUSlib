@@ -110,6 +110,7 @@ void flimInit(void) {
     eventsInit();
     cbusInit(DEFAULT_NN);
     FlashStatus = FALSE;
+    setStatusLed(flimState == fsFLiM);
     
     // Initialise node variables
 
@@ -140,12 +141,8 @@ void FLiMSWCheck( void ) {
                         
                 cbusMsg[d1] = (nodeID >>8)&0xff;
                 cbusMsg[d2] = nodeID & 0xff;
-    // Acknowledge new node id
-    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );
-                        
-                        
-                        
-                        
+                    // This isn't part of the CBUS spec but it is very useful
+                    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );     
                 switchTime.Val = tickGet();
             }
             break;
@@ -158,6 +155,7 @@ void FLiMSWCheck( void ) {
             } else if ((prevFlimState == fsFLiM) && (tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) {
                 // short press and release in FLiM
                 flimState = fsFLiMSetup;
+                startFLiMFlash(FALSE);       // slow flash for FLiM setup
                 requestNodeNumber();
             } else {
                 flimState = prevFlimState; // But not held down long enough, revert to previous state
@@ -173,8 +171,8 @@ void FLiMSWCheck( void ) {
                     flimState = fsSLiM;
                     SLiMRevert();
                     setSLiMLed();
+                    SaveNodeDetails(nodeID, fsSLiM);
                 }
-                SaveNodeDetails(nodeID, flimState);
             } else {
                 if (tickTimeSince(switchTime) > SET_TEST_MODE_TIME) {
                     flimState = fsPressedTest;
@@ -229,7 +227,11 @@ void FLiMSWCheck( void ) {
             }
             break;
         default:
-            LED1Y = 1;
+            // Should never get here... but just in case
+            flimState = fsSLiM;
+            SLiMRevert();
+            setSLiMLed();
+            SaveNodeDetails(nodeID, fsSLiM);
             break;
     } // switch
 
