@@ -146,7 +146,7 @@ const rom EventTable eventTable[NUM_EVENTS];
 #ifdef PRODUCED_EVENTS
 #pragma udata large_event_hash
 // the lookup table to find an EventTable entry by Producer action
-BYTE action2Event[NUM_PRODUCER_ACTIONS];    // MIO: 66 bytes
+BYTE action2Event[NUM_PRODUCER_ACTIONS];    // MIO: 64+8 bytes
 #endif
 // The hashtable to find the EventTable entry by Event.
 // This RAM hash table will probably be more than 256 bytes. With C18 this leads to
