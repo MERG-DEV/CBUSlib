@@ -534,7 +534,7 @@ void deleteAction(unsigned char action) {
  * @param action the produced action
  * @return the produced event or NULL if none has been provisioned
  */ 
-const Event * getProducedEvent(unsigned char action) {
+volatile rom near Event * getProducedEvent(unsigned char action) {
      if (action >= NUM_PRODUCER_ACTIONS) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
      if (action2Event[action] == NO_ACTION) return NULL;
