@@ -127,7 +127,7 @@ typedef struct {
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 #else
 #pragma romdata myEvents=AT_EVENTS
-const rom EventTable eventTable[NUM_EVENTS];
+volatile near rom EventTable eventTable[NUM_EVENTS];
 #endif
 
 
