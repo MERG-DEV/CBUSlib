@@ -156,7 +156,11 @@ extern ModuleNvDefs * NV;                 // pointer to NVs in Flash (or perhaps
 //extern const NodeBytes *	NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
 //extern EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
 #else
-extern rom ModuleNvDefs * NV;                 // pointer to NVs in Flash (or perhaps RAM if cache is used)
+#ifdef NV_CACHE
+extern ModuleNvDefs * NV;
+#else
+extern volatile rom near ModuleNvDefs * NV;                 // pointer to NVs in Flash (or perhaps RAM if cache is used)
+#endif
 //extern rom	NodeBytes 	*NzVPtr;     // pointer to Node variables table.  \_ These can be array as defined here or with specific structures in module specific code
 //extern rom	EventTableEntry	*EVTPtr;    // pointer to Event variables table. /
 #endif

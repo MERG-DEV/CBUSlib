@@ -87,8 +87,8 @@ extern const NodeVarTable nodeVarTable @AT_NV ;
 const BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //EventTableEntry     *EVTPtr;      // Event table in ROM
 #else
-extern rom NodeVarTable nodeVarTable;
-rom BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
+extern volatile rom NodeVarTable nodeVarTable;
+volatile rom near BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //rom EventTableEntry     *EVTPtr;    // Event table in ROM
    
 #pragma code APP
@@ -517,7 +517,7 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         flashIndex = AT_NV;
         flashIndex += NVindex;
 
-        oldValue = NvBytePtr[--NVindex];
+        oldValue = NvBytePtr[NVindex];
         if (validateNV(NVindex, oldValue, NVvalue)) {
             writeFlashByte((BYTE *)flashIndex, NVvalue);
             actUponNVchange(NVindex, NVvalue);

@@ -743,9 +743,7 @@ void canInterruptHandler( void )
         canTxError();
     }
     if (TXBnIF) {
-LATCbits.LATC5 = 1;
         checkTxFifo();
-LATCbits.LATC5 = 0;
     }
     checkCANTimeout();
 }

@@ -73,6 +73,8 @@ unsigned char getHash(WORD nn, WORD en);
 BYTE tableIndexToEvtIdx(BYTE tableIndex);
 BYTE evtIdxToTableIndex(BYTE evtIdx);
 unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal);
+WORD getNN(unsigned char tableIndex);
+WORD getEN(unsigned char tableIndex);
 
 extern void processEvent(unsigned char action, BYTE * msg);
 
@@ -169,7 +171,8 @@ void eventsInit( void ) {
 } //eventsInit
 
 BOOL validStart(BOOL tableIndex) {
-    if (( !eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
+    EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+    if (( !f.freeEntry) && ( ! f.continuation)) {
         return TRUE;
     } else {
         return FALSE;
@@ -199,7 +202,8 @@ void doNnevn(void) {
     unsigned char count = 0;
     unsigned char i;
     for (i=0; i<NUM_EVENTS; i++) {
-        if (eventTable[i].flags.freeEntry) {
+        EventTableFlags f = readFlashBlock((WORD)(& eventTable[i].flags));
+        if (f.freeEntry) {
             count++;
         }
     }
@@ -214,10 +218,14 @@ void doNerd(void) {
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         // if its not free and not a continuation then it is start of an event
         if (validStart(tableIndex)) {
-            cbusMsg[d3] = eventTable[tableIndex].event.NN>>8;
-            cbusMsg[d4] = eventTable[tableIndex].event.NN&0xff;
-            cbusMsg[d5] = eventTable[tableIndex].event.EN>>8;
-            cbusMsg[d6] = eventTable[tableIndex].event.EN&0xff;
+            WORD n = getNN(tableIndex);
+            cbusMsg[d3] = n >> 8;
+            cbusMsg[d4] = n & 0xFF;
+            
+            n = getEN(tableIndex);
+            cbusMsg[d5] = n >> 8;
+            cbusMsg[d6] = n & 0xFF;
+            
             cbusMsg[d7] = tableIndexToEvtIdx(tableIndex); 
             cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );   // TODO we need to send the EV# but we can't
         }
@@ -259,7 +267,7 @@ unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
     writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
     // Now follow the next pointer
     while (eventTable[tableIndex].flags.continues) {
-        tableIndex = eventTable[tableIndex].next;
+        tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         // the continuation flag of this entry should be set but I'm 
         // not going to check as I wouldn't know what to do if it wasn't set
                     
@@ -307,7 +315,8 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
     }
     // event start not found so find an empty slot and create one
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
-        if (eventTable[tableIndex].flags.freeEntry) {
+        EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+        if (f.freeEntry) {
             unsigned char e;
             // found a free slot, initialise it
             setFlashWord((WORD*)&eventTable[tableIndex].event.NN, nodeNumber);
@@ -343,15 +352,22 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
     unsigned char chainIdx;
     for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
         unsigned char tableIndex = eventChains[hash][chainIdx];
+        WORD nn, en;
         if (tableIndex == NO_INDEX) return NO_INDEX;
-        if ((eventTable[tableIndex].event.NN == nodeNumber) && (eventTable[tableIndex].event.EN == eventNumber)) {
+        nn = getNN(tableIndex);
+        en = getEN(tableIndex);
+        if ((nn == nodeNumber) && (en == eventNumber)) {
             return tableIndex;
         }
     }
 #else
     for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-        if (( ! eventTable[tableIndex].flags.freeEntry) && ( ! eventTable[tableIndex].flags.continuation)) {
-            if ((eventTable[tableIndex].event.NN == nodeNumber) && (eventTable[tableIndex].event.EN == eventNumber)) {
+        EventTableFlags f = readFlashBlock((WORD)(& eventTable[i].flags));
+        if (( ! f.freeEntry) && ( ! f.continuation)) {
+            WORD nn, en;
+            nn = getNN(tableIndex);
+            en = getEN(tableIndex);
+            if ((nn == nodeNumber) && (en == eventNumber)) {
                 return tableIndex;
             }
         }
@@ -373,15 +389,18 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
     }
     while (evNum >= EVENT_TABLE_WIDTH) {
         unsigned char nextIdx;
+        EventTableFlags f;
         // skip forward looking for the right chained table entry
         evNum -= EVENT_TABLE_WIDTH;
+        f.free = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
         
-        if (eventTable[tableIndex].flags.continues) {
-            tableIndex = eventTable[tableIndex].next;
+        if (f.continues) {
+            tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         } else {
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
-                if (eventTable[nextIdx].flags.freeEntry) {
+                f.free = readFlashBlock((WORD)(& eventTable[nextIdx].flags));
+                if (f.freeEntry) {
                     unsigned char e;
                      // found a free slot, initialise it
                     setFlashWord((WORD*)&eventTable[nextIdx].event.NN, 0xff); // this field not used
@@ -426,15 +445,16 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
     evNum--;    // make it start from 0
     while (evNum >= EVENT_TABLE_WIDTH) {
         // if evNum is beyond current eventTable entry move to next one
-        if (eventTable[tableIndex].flags.continues) {
-            tableIndex = eventTable[tableIndex].next;
+        EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+        if (f.continues) {
+            tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         } else {
             // beyond last available EV
             return -1;
         }
     }
     // it is within this entry
-    return eventTable[tableIndex].evs[evNum];
+    return readFlashBlock((WORD)(& eventTable[tableIndex].evs[evNum]));
 }
 
 /**
@@ -444,7 +464,7 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
  * @return the Node Number
  */
 WORD getNN(unsigned char tableIndex) {
-    return eventTable[tableIndex].event.NN;
+    return readFlashBlock((WORD)(& eventTable[tableIndex].event.NN)) | (readFlashBlock((WORD)(& eventTable[tableIndex].event.NN)+1) << 8);
 }
 
 /**
@@ -454,7 +474,8 @@ WORD getNN(unsigned char tableIndex) {
  * @return the Event Number
  */
 WORD getEN(unsigned char tableIndex) {
-    return eventTable[tableIndex].event.EN;
+    return readFlashBlock((WORD)(& eventTable[tableIndex].event.EN)) | (readFlashBlock((WORD)(& eventTable[tableIndex].event.EN)+1) << 8);
+
 }
 
 /**
@@ -512,8 +533,9 @@ void deleteAction(unsigned char action) {
         for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
             unsigned char e;
             for (e=0; e<EVENT_TABLE_WIDTH; e++) {
-                if ( ! eventTable[tableIndex].flags.freeEntry) {
-                    if (eventTable[tableIndex].evs[e] == action) {
+                EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+                if ( ! f.freeEntry) {
+                    if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == action) {
                         writeEv(tableIndex, 0, NO_ACTION);
                     }
                 }
@@ -534,16 +556,21 @@ void deleteAction(unsigned char action) {
  * @param action the produced action
  * @return the produced event or NULL if none has been provisioned
  */ 
+static Event ret;
 volatile rom near Event * getProducedEvent(unsigned char action) {
-     if (action >= NUM_PRODUCER_ACTIONS) return NULL;    // not a produced valid action
+    if ((action < ACTION_PRODUCER_BASE) || (action >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
-     if (action2Event[action] == NO_ACTION) return NULL;
-     return &eventTable[action2Event[action]].event;
+    if (action2Event[action-ACTION_PRODUCER_BASE] == NO_ACTION) return NULL;
+    ret.NN = getNN(action2Event[action-ACTION_PRODUCER_BASE]);
+    ret.EN = getEN(action2Event[action-ACTION_PRODUCER_BASE]);
+    return &ret;
 #else
     for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
-            if (eventTable[tableIndex].evs[0] == action) {
-                return &eventTable[tableIndex];
+            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == action) {
+                ret.NN = getNN(action2Event[action-ACTION_PRODUCER_BASE])
+                ret.EN = getEN(action2Event[action-ACTION_PRODUCER_BASE]);
+                return &ret;
             }
         }
     }
@@ -609,12 +636,12 @@ void rebuildHashtable(void) {
 #ifdef PRODUCED_EVENTS
             // EV#1 is used to store the Produced event's action
             int action = getEv(tableIndex, 1);
-            if ((action > 0) && (action <= NUM_PRODUCER_ACTIONS)) {
-                action2Event[action] = tableIndex;
+            if ((action >= ACTION_PRODUCER_BASE) && (action < ACTION_PRODUCER_BASE+ NUM_PRODUCER_ACTIONS)) {
+                action2Event[action-ACTION_PRODUCER_BASE] = tableIndex;
             }
 #endif
             // The other EVs are for the consumed events
-            hash = getHash(eventTable[tableIndex].event.NN, eventTable[tableIndex].event.EN);
+            hash = getHash(getNN(tableIndex), getEN(tableIndex));
             
             for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
                 if (eventChains[hash][chainIdx] == NO_INDEX) {
