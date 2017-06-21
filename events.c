@@ -116,7 +116,7 @@ typedef union
         BOOL    continuation:1; // Continuation of previous event entry
         BOOL    freeEntry:1;    // not used - takes priority over other flags
     };
-    BYTE    free;       // Set to 0xFF for free entry, initially set to zero for entry in use, then producer flag set if required.
+    BYTE    asByte;       // Set to 0xFF for free entry, initially set to zero for entry in use, then producer flag set if required.
 } EventTableFlags;
 
 typedef struct {
@@ -171,7 +171,8 @@ void eventsInit( void ) {
 } //eventsInit
 
 BOOL validStart(BOOL tableIndex) {
-    EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+    EventTableFlags f;
+    f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
     if (( !f.freeEntry) && ( ! f.continuation)) {
         return TRUE;
     } else {
@@ -202,7 +203,8 @@ void doNnevn(void) {
     unsigned char count = 0;
     unsigned char i;
     for (i=0; i<NUM_EVENTS; i++) {
-        EventTableFlags f = readFlashBlock((WORD)(& eventTable[i].flags));
+        EventTableFlags f;
+        f.asByte = readFlashBlock((WORD)(& eventTable[i].flags));
         if (f.freeEntry) {
             count++;
         }
@@ -315,7 +317,8 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
     }
     // event start not found so find an empty slot and create one
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
-        EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+        EventTableFlags f;
+        f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
         if (f.freeEntry) {
             unsigned char e;
             // found a free slot, initialise it
@@ -362,7 +365,8 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
     }
 #else
     for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-        EventTableFlags f = readFlashBlock((WORD)(& eventTable[i].flags));
+        EventTableFlags f;
+        f.asByte = readFlashBlock((WORD)(& eventTable[i].flags));
         if (( ! f.freeEntry) && ( ! f.continuation)) {
             WORD nn, en;
             nn = getNN(tableIndex);
@@ -392,14 +396,14 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
         EventTableFlags f;
         // skip forward looking for the right chained table entry
         evNum -= EVENT_TABLE_WIDTH;
-        f.free = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+        f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
         
         if (f.continues) {
             tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         } else {
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
-                f.free = readFlashBlock((WORD)(& eventTable[nextIdx].flags));
+                f.asByte = readFlashBlock((WORD)(& eventTable[nextIdx].flags));
                 if (f.freeEntry) {
                     unsigned char e;
                      // found a free slot, initialise it
@@ -445,7 +449,8 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
     evNum--;    // make it start from 0
     while (evNum >= EVENT_TABLE_WIDTH) {
         // if evNum is beyond current eventTable entry move to next one
-        EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+        EventTableFlags f;
+        f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
         if (f.continues) {
             tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         } else {
@@ -531,14 +536,31 @@ void deleteAction(unsigned char action) {
     if (action != NO_ACTION) {
         unsigned char tableIndex;
         for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-            unsigned char e;
-            for (e=0; e<EVENT_TABLE_WIDTH; e++) {
-                EventTableFlags f = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
-                if ( ! f.freeEntry) {
+            EventTableFlags f;
+            f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+            if ( ! f.freeEntry) {
+                unsigned char e;
+                for (e=0; e<EVENT_TABLE_WIDTH; e++) {
                     if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == action) {
                         writeEv(tableIndex, 0, NO_ACTION);
                     }
                 }
+            }
+        }
+        // now check to see if any events can be removed
+        for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+            BOOL remove = TRUE;
+            if ( validStart(tableIndex)) {
+                unsigned char e;
+                for (e=0; e<EVENT_TABLE_WIDTH; e++) {
+                    if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) != NO_ACTION) {
+                        remove = FALSE;
+                        break;
+                    }
+                }
+            }
+            if (remove) {
+                writeFlashByte((BYTE*)&eventTable[tableIndex].flags, 0xFF);
             }
         }
 #ifdef HASH_TABLE

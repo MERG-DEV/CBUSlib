@@ -254,6 +254,7 @@ _asm
 //        MOVLB FLASHBUFPAGE
 READ_BLOCK:
         TBLRDPOSTINC
+        NOP
         MOVFF TABLAT,POSTINC0
         DECF flashidx,F,1
         BNZ READ_BLOCK
