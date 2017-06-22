@@ -465,7 +465,12 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
  * @return the Node Number
  */
 WORD getNN(unsigned char tableIndex) {
-    return readFlashBlock((WORD)(& eventTable[tableIndex].event.NN)) | (readFlashBlock((WORD)(& eventTable[tableIndex].event.NN)+1) << 8);
+    WORD hi;
+    WORD lo;
+    
+    lo=readFlashBlock((WORD)(& eventTable[tableIndex].event.NN));
+    hi = readFlashBlock((WORD)(& eventTable[tableIndex].event.NN)+1);
+    return lo | (hi << 8);
 }
 
 /**
@@ -475,7 +480,12 @@ WORD getNN(unsigned char tableIndex) {
  * @return the Event Number
  */
 WORD getEN(unsigned char tableIndex) {
-    return readFlashBlock((WORD)(& eventTable[tableIndex].event.EN)) | (readFlashBlock((WORD)(& eventTable[tableIndex].event.EN)+1) << 8);
+    WORD hi;
+    WORD lo;
+    
+    lo=readFlashBlock((WORD)(& eventTable[tableIndex].event.EN));
+    hi = readFlashBlock((WORD)(& eventTable[tableIndex].event.EN)+1);
+    return lo | (hi << 8);
 
 }
 
@@ -656,7 +666,7 @@ void rebuildHashtable(void) {
 #ifdef PRODUCED_EVENTS
             // ev[0] is used to store the Produced event's action
             int action = getEv(tableIndex, 0);
-            if ((action >= ACTION_PRODUCER_BASE) && (action < ACTION_PRODUCER_BASE+ NUM_PRODUCER_ACTIONS)) {
+            if ((action >= ACTION_PRODUCER_BASE) && (action-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
                 action2Event[action-ACTION_PRODUCER_BASE] = tableIndex;
             }
 #endif
