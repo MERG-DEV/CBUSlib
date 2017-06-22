@@ -292,7 +292,7 @@ unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
  * to be initialised.
  * @param nodeNumber
  * @param eventNumber
- * @param evNum the EV index
+ * @param evNum the EV index (starts at 0 for the produced action)
  * @param evVal the EV value
  * @return error number or 0 for success
  */
@@ -383,12 +383,12 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
 /**
  * Write an EV value to an event
  * @param tableIndex the index into the event table
- * @param evNum the EV number (zero based)
+ * @param evNum the EV number (0 for the produced action)
  * @param evVal
  * @return 0 if success otherwise the error
  */
 unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
-    if (evNum > EVperEVT) {
+    if (evNum >= EVperEVT) {
         return CMDERR_INV_EV_IDX;
     }
     while (evNum >= EVENT_TABLE_WIDTH) {
@@ -432,7 +432,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
 /**
  * Return an EV value for an event.
  * @param tableIndex the index of the start of an event
- * @param evNum ev number starts at 1
+ * @param evNum ev number starts at 0 (produced)
  * @return the ev value or -1 if error
  */
 int getEv(unsigned char tableIndex, unsigned char evNum) {
@@ -440,13 +440,9 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
         // not a valid start
         return -1;
     }
-    if (evNum == 0) {
+    if (evNum >= EVperEVT) {
         return -1;
     }
-    if (evNum > EVperEVT) {
-        return -1;
-    }
-    evNum--;    // make it start from 0
     while (evNum >= EVENT_TABLE_WIDTH) {
         // if evNum is beyond current eventTable entry move to next one
         EventTableFlags f;
@@ -542,7 +538,7 @@ void deleteAction(unsigned char action) {
                 unsigned char e;
                 for (e=0; e<EVENT_TABLE_WIDTH; e++) {
                     if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == action) {
-                        writeEv(tableIndex, 0, NO_ACTION);
+                        writeEv(tableIndex, e, NO_ACTION);
                     }
                 }
             }
@@ -654,21 +650,29 @@ void rebuildHashtable(void) {
     
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
+            unsigned char e;
+    
             // found the start of an event definition
 #ifdef PRODUCED_EVENTS
-            // EV#1 is used to store the Produced event's action
-            int action = getEv(tableIndex, 1);
+            // ev[0] is used to store the Produced event's action
+            int action = getEv(tableIndex, 0);
             if ((action >= ACTION_PRODUCER_BASE) && (action < ACTION_PRODUCER_BASE+ NUM_PRODUCER_ACTIONS)) {
                 action2Event[action-ACTION_PRODUCER_BASE] = tableIndex;
             }
 #endif
-            // The other EVs are for the consumed events
-            hash = getHash(getNN(tableIndex), getEN(tableIndex));
-            
-            for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
-                if (eventChains[hash][chainIdx] == NO_INDEX) {
-                    // available
-                    eventChains[hash][chainIdx] = tableIndex;
+            for (e=1; e<EVENT_TABLE_WIDTH; e++) {
+                action = getEv(tableIndex, e);
+                if (action != NO_ACTION) {
+                    // The other EVs are for the consumed events
+                    hash = getHash(getNN(tableIndex), getEN(tableIndex));
+                
+                    for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+                        if (eventChains[hash][chainIdx] == NO_INDEX) {
+                            // available
+                            eventChains[hash][chainIdx] = tableIndex;
+                            break;
+                        }
+                    }
                     break;
                 }
             }

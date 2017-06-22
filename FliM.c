@@ -617,7 +617,7 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) {
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
     }
-    evNum--;
+    evNum--;    // convert CBUS numbering (starts at 1) to internal numbering)
     error = addEvent(nodeNumber, eventNumber, evNum, evVal);
     if (error) {
         // failed to write
@@ -640,17 +640,25 @@ void doReval(void) {
     unsigned char tableIndex = evtIdxToTableIndex(cbusMsg[d3]);
     unsigned char evNum = cbusMsg[d4];
     
+    if ((evNum == 0) || (evNum > EVperEVT)) {
+        cbusMsg[d3] = CMDERR_INV_EV_IDX;
+        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        return;
+    }
+    evNum--;    // Convert from CBUS numbering (starts at 1 for produced action))
+    
     // check it is a valid index
     if (tableIndex < NUM_EVENTS) {
         if (validStart(tableIndex)) {
             int evVal = getEv(tableIndex, evNum);
             if (evVal >= 0) {
-                cbusMsg[5] = getEv(tableIndex, evNum);
+                cbusMsg[5] = evVal;
                 cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
                 return;
             }
             cbusMsg[d3] = CMDERR_INV_EV_IDX;
             cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+            return;
         }
     }
     cbusMsg[d3] = CMDERR_INVALID_EVENT;
@@ -681,13 +689,21 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
     if (tableIndex == NO_INDEX) {
         cbusMsg[d3] = CMDERR_INVALID_EVENT;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        return;
     }
+    if ((evNum == 0) || (evNum > EVperEVT)) {
+        cbusMsg[d3] = CMDERR_INV_EV_IDX;
+        cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+        return;
+    }
+    evNum--;    // Convert from CBUS numbering (starts at 1 for produced action))
+    
     cbusMsg[d3] = eventNumber >> 8;
     cbusMsg[d4] = eventNumber & 0x00FF;
     cbusMsg[d5] = evNum;
     evVal = getEv(tableIndex, evNum);
     if (evVal >= 0) {
-        cbusMsg[d6] = getEv(tableIndex, evNum);
+        cbusMsg[d6] = evVal;
         cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
         return;
     }
