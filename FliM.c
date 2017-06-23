@@ -56,10 +56,10 @@ extern BYTE tableIndexToEvtIdx(BYTE tableIndex);
 extern BOOL validStart(BYTE tableIndex);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
-extern void clearAllEvents();
+extern void clearAllEvents(void);
 
 #ifdef NV_CACHE
-extern void loadNvCache();
+extern void loadNvCache(void);
 #endif
 
 #ifdef __XC8__
@@ -114,7 +114,7 @@ void flimInit(void) {
     
     // Initialise node variables
 
-	NvBytePtr = nodeVarTable.nodevars;         // Node Variables table
+//	NvBytePtr = nodeVarTable.nodevars;         // Node Variables table
 //    NV = &(nodeVarTable.moduleNVs);
 //	EVTPtr = eventTable;           // Event table
 	NV_changed = FALSE; 
