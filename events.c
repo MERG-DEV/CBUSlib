@@ -582,16 +582,16 @@ void deleteAction(unsigned char action) {
  * only the first provisioned event will be returned.
  * 
  * @param action the produced action
- * @return the produced event or NULL if none has been provisioned
+ * @return TRUE if the produced event is found
  */ 
-static Event ret;
-volatile rom near Event * getProducedEvent(unsigned char action) {
+Event producedEvent;
+BOOL getProducedEvent(unsigned char action) {
     if ((action < ACTION_PRODUCER_BASE) || (action >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
-    if (action2Event[action-ACTION_PRODUCER_BASE] == NO_ACTION) return NULL;
-    ret.NN = getNN(action2Event[action-ACTION_PRODUCER_BASE]);
-    ret.EN = getEN(action2Event[action-ACTION_PRODUCER_BASE]);
-    return &ret;
+    if (action2Event[action-ACTION_PRODUCER_BASE] == NO_ACTION) return FALSE;
+    producedEvent.NN = getNN(action2Event[action-ACTION_PRODUCER_BASE]);
+    producedEvent.EN = getEN(action2Event[action-ACTION_PRODUCER_BASE]);
+    return TRUE;
 #else
     for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
