@@ -314,7 +314,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr) {
             break;
         case OPC_EVULN:
             // Unlearn event
-            doEvuln( (rx_ptr[d1] << 8) + rx_ptr[d2], (rx_ptr[d3] << 8) + rx_ptr[d4]);
+            doEvuln( (((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2], (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
             break;
         case OPC_EVLRN:
             // Teach event whilst in learn mode
@@ -322,11 +322,11 @@ BOOL parseFLiMCmd(BYTE *rx_ptr) {
             break;
         case OPC_EVLRNI:
             // Teach event whilst in learn mode with event index
-            doEvlrn((rx_ptr[d1] << 8) + rx_ptr[d2] , (rx_ptr[d3] << 8) + rx_ptr[d4], rx_ptr[d6], rx_ptr[d7]);  // Current implementation does not use index to save learnt event
+            doEvlrn((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d6], rx_ptr[d7]);  // Current implementation does not use index to save learnt event
             break;
         case OPC_REQEV:
             // Read event variable by event id
-            doReqev((rx_ptr[d1] << 8) + rx_ptr[d2] , (rx_ptr[d3] << 8) + rx_ptr[d4], rx_ptr[d5]);
+            doReqev((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d5]);
             break;
         default:
             cmdProcessed = FALSE;
@@ -520,14 +520,14 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         oldValue = NvBytePtr[NVindex];
         if (validateNV(NVindex, oldValue, NVvalue)) {
             writeFlashByte((BYTE *)flashIndex, NVvalue);
+#ifdef NV_CACHE
+            loadNvCache();
+#endif
             actUponNVchange(NVindex, NVvalue);
             cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
         } else {
             doError(CMDERR_INV_NV_VALUE);
         }
-#ifdef NV_CACHE
-        loadNvCache();
-#endif
     }
 } // doNvset
 

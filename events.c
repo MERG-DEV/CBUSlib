@@ -435,13 +435,13 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
  * @param evNum ev number starts at 0 (produced)
  * @return the ev value or -1 if error
  */
-int getEv(unsigned char tableIndex, unsigned char evNum) {
+BYTE getEv(unsigned char tableIndex, unsigned char evNum) {
     if ( ! validStart(tableIndex)) {
         // not a valid start
-        return -1;
+        return NO_ACTION;
     }
     if (evNum >= EVperEVT) {
-        return -1;
+        return NO_ACTION;
     }
     while (evNum >= EVENT_TABLE_WIDTH) {
         // if evNum is beyond current eventTable entry move to next one
@@ -451,7 +451,7 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
             tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         } else {
             // beyond last available EV
-            return -1;
+            return NO_ACTION;
         }
     }
     // it is within this entry
@@ -674,7 +674,7 @@ void rebuildHashtable(void) {
             // found the start of an event definition
 #ifdef PRODUCED_EVENTS
             // ev[0] is used to store the Produced event's action
-            int action = getEv(tableIndex, 0);
+            BYTE action = getEv(tableIndex, 0);
             if ((action >= ACTION_PRODUCER_BASE) && (action-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
                 action2Event[action-ACTION_PRODUCER_BASE] = tableIndex;
             }

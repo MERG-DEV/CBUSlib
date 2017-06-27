@@ -114,7 +114,7 @@ extern void eventsInit(void);
 extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 extern void deleteAction(unsigned char action);
 extern BOOL getProducedEvent(unsigned char action);
-extern int getEv(unsigned char tableIndex, unsigned char evNum);
+extern BYTE getEv(unsigned char tableIndex, unsigned char evNum);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 
 extern Event producedEvent;
