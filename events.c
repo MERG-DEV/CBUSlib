@@ -66,6 +66,7 @@
 #include "events.h"
 #include "cbus.h"
 #include "romops.h"
+#include "actionQueue.h"
 
 // forward references
 void rebuildHashtable(void);
@@ -594,19 +595,19 @@ void deleteAction(unsigned char action) {
  * @return TRUE if the produced event is found
  */ 
 Event producedEvent;
-BOOL getProducedEvent(unsigned char action) {
-    if ((action < ACTION_PRODUCER_BASE) || (action >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
+BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
+    if ((paction < ACTION_PRODUCER_BASE) || (paction >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
-    if (action2Event[action-ACTION_PRODUCER_BASE] == NO_ACTION) return FALSE;
-    producedEvent.NN = getNN(action2Event[action-ACTION_PRODUCER_BASE]);
-    producedEvent.EN = getEN(action2Event[action-ACTION_PRODUCER_BASE]);
+    if (action2Event[paction-ACTION_PRODUCER_BASE] == NO_ACTION) return FALSE;
+    producedEvent.NN = getNN(action2Event[paction-ACTION_PRODUCER_BASE]);
+    producedEvent.EN = getEN(action2Event[paction-ACTION_PRODUCER_BASE]);
     return TRUE;
 #else
     for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
-            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == action) {
-                ret.NN = getNN(action2Event[action-ACTION_PRODUCER_BASE])
-                ret.EN = getEN(action2Event[action-ACTION_PRODUCER_BASE]);
+            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == paction) {
+                ret.NN = getNN(action2Event[paction-ACTION_PRODUCER_BASE])
+                ret.EN = getEN(action2Event[paction-ACTION_PRODUCER_BASE]);
                 return &ret;
             }
         }
@@ -655,9 +656,9 @@ void rebuildHashtable(void) {
     unsigned char tableIndex;
 #ifdef PRODUCED_EVENTS
     // first initialise to nothing
-    unsigned char action;
-    for (action=0; action<NUM_PRODUCER_ACTIONS; action++) {
-        action2Event[action] = NO_ACTION;
+    PRODUCER_ACTION_T paction;
+    for (paction=0; paction<NUM_PRODUCER_ACTIONS; paction++) {
+        action2Event[paction] = NO_ACTION;
     }
 #endif
     for (hash=0; hash<HASH_LENGTH; hash++) {
@@ -674,14 +675,14 @@ void rebuildHashtable(void) {
             // found the start of an event definition
 #ifdef PRODUCED_EVENTS
             // ev[0] is used to store the Produced event's action
-            BYTE action = getEv(tableIndex, 0);
-            if ((action >= ACTION_PRODUCER_BASE) && (action-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
-                action2Event[action-ACTION_PRODUCER_BASE] = tableIndex;
+            paction = getEv(tableIndex, 0);
+            if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
+                action2Event[paction-ACTION_PRODUCER_BASE] = tableIndex;
             }
 #endif
             for (e=1; e<EVENT_TABLE_WIDTH; e++) {
-                action = getEv(tableIndex, e);
-                if (action != NO_ACTION) {
+                CONSUMER_ACTION_T caction = getEv(tableIndex, e);
+                if (caction != NO_ACTION) {
                     // The other EVs are for the consumed events
                     hash = getHash(getNN(tableIndex), getEN(tableIndex));
                 
