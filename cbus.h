@@ -67,15 +67,15 @@ extern BYTE    cbusMsg[pktsize];
 
 void cbusInit( WORD initNodeID );
 BOOL cbusMsgReceived( BYTE cbusNum, BYTE *msg );
-void cbusSendSingleOpc(BYTE cbusNum, BYTE opc );
-void cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg);
-void cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD Node_id, BYTE *msg);
-void cbusSendMsgMyNN(BYTE cbusNum, BYTE *msg);
-void cbusSendMsgNN(BYTE cbusNum, WORD Node_id, BYTE *msg);
-void cbusSendMsg(BYTE cbusNum, BYTE *msg);
-void cbusSendMyEvent( BYTE cbusNum, WORD eventNum, BOOL onEvent );
-void cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent );
-void cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent, BYTE *msg, BYTE datalen );
+BOOL cbusSendSingleOpc(BYTE cbusNum, BYTE opc );
+BOOL cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg);
+BOOL cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD Node_id, BYTE *msg);
+BOOL cbusSendMsgMyNN(BYTE cbusNum, BYTE *msg);
+BOOL cbusSendMsgNN(BYTE cbusNum, WORD Node_id, BYTE *msg);
+BOOL cbusSendMsg(BYTE cbusNum, BYTE *msg);
+BOOL cbusSendMyEvent( BYTE cbusNum, WORD eventNum, BOOL onEvent );
+BOOL cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent );
+BOOL cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent, BYTE *msg, BYTE datalen );
 void cbusSendDataEvent(BYTE cbusNum, WORD Node_id, BYTE *debug_data );
 
 

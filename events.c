@@ -230,8 +230,9 @@ void doNerd(void) {
             cbusMsg[d6] = n & 0xFF;
             
             cbusMsg[d7] = tableIndexToEvtIdx(tableIndex); 
-            cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );   // TODO we need to send the EV# but we can't
-        }
+            while ( !cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg ))
+                ;   // Busy wait trying to send
+        }   
     }
 } // doNerd
 

@@ -111,10 +111,10 @@ BOOL cbusMsgReceived( BYTE cbusNum, BYTE *msg )
 /*
  * Send single byte frame - opcode only
  */
-void cbusSendSingleOpc(BYTE cbusNum, BYTE opc )
+BOOL cbusSendSingleOpc(BYTE cbusNum, BYTE opc )
 {
     cbusMsg[d0] = opc;
-    cbusSendMsg(cbusNum, cbusMsg);
+    return cbusSendMsg(cbusNum, cbusMsg);
 }
 
 
@@ -123,10 +123,10 @@ void cbusSendSingleOpc(BYTE cbusNum, BYTE opc )
  * Send opcode plus our node number, can be used to send simple 3-byte frame, or may have further 
  * bytes prepared in the buffer by the caller
  */
-void cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
+BOOL cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
 {
     msg[d0] = opc;
-    cbusSendMsgMyNN(cbusNum, msg);
+    return cbusSendMsgMyNN(cbusNum, msg);
 }
 
 
@@ -134,40 +134,41 @@ void cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
  * Send opcode plus specified node number, can be used to send simple 3-byte frame, or may have further 
  * bytes prepared in the buffer by the caller
  */
-void cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD nodeID, BYTE *msg)
+BOOL cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD nodeID, BYTE *msg)
 {
 	msg[d0] = opc;
-	cbusSendMsgNN(cbusNum, nodeID, msg);
+	return cbusSendMsgNN(cbusNum, nodeID, msg);
 }
 
 
 // Send long CBUS event, no data, using our node number
 
-void cbusSendMyEvent( BYTE cbusNum, WORD eventNum, BOOL onEvent )
+BOOL cbusSendMyEvent( BYTE cbusNum, WORD eventNum, BOOL onEvent )
 {
     BYTE    msg[d0+4];
 
-    cbusSendEventWithData( cbusNum, -1, eventNum, onEvent, msg, 0);
+    return cbusSendEventWithData( cbusNum, -1, eventNum, onEvent, msg, 0);
 }
 
 // Send CBUS event, no data, using specified node number.
 // Send short event if eventNode is 0
 
 
-void cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent )
+BOOL cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent )
 {
     BYTE    msg[d0+4];
 
-    cbusSendEventWithData( cbusNum, eventNode, eventNum, onEvent, msg, 0);
+    return cbusSendEventWithData( cbusNum, eventNode, eventNum, onEvent, msg, 0);
 }
 
 
 
 // Send CBUS event with optional data bytes - works out appropriate opcode
-void cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent, BYTE *msg, BYTE datalen )
+BOOL cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent, BYTE *msg, BYTE datalen )
 {
+    BOOL ret;
     msg[d0] = OPC_ACON;         // Start with long event opcode
-
+    
     if (eventNode == 0)
     {
         msg[d0] |= 0x08;        // Short event opcode
@@ -183,37 +184,37 @@ void cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL on
     msg[d3] = eventNum>>8;
     msg[d4] = eventNum & 0xFF;
 
-    cbusSendMsgNN( cbusNum, eventNode, msg );
+    ret = cbusSendMsgNN( cbusNum, eventNode, msg );
 
     #if defined(CBUS_OVER_CAN)
         if ((cbusNum == CBUS_OVER_CAN) || (cbusNum == 0xFF) )
             canQueueRx( (CanPacket*)msg );      // Queue event into receive buffer so module can be taught its own events
 
     #endif
-
+    return ret;
 } // cbusSendEventWithData
 
 /*
  * Send a CBUS message, putting our Node Number in first two data bytes
  */
-void cbusSendMsgMyNN(BYTE cbusNum, BYTE *msg)
+BOOL cbusSendMsgMyNN(BYTE cbusNum, BYTE *msg)
 {
     msg[d1] = nodeID>>8;
     msg[d2] = nodeID & 0xFF;
-    cbusSendMsg(cbusNum, msg);
+    return cbusSendMsg(cbusNum, msg);
 }
 
 /*
  * Send a CBUS message, work out node Number and put it in first two data bytes
  */
-void cbusSendMsgNN(BYTE cbusNum, WORD eventNode, BYTE *msg)
+BOOL cbusSendMsgNN(BYTE cbusNum, WORD eventNode, BYTE *msg)
 {
     if (eventNode == -1)
         eventNode = nodeID; // Use node id for this module
 
     msg[d1] = eventNode>>8;
     msg[d2] = eventNode & 0xFF;
-    cbusSendMsg(cbusNum, msg);
+    return cbusSendMsg(cbusNum, msg);
 }
 
 
@@ -222,11 +223,11 @@ void cbusSendMsgNN(BYTE cbusNum, WORD eventNode, BYTE *msg)
  * Works out data length from opcode
  * If cbusNum is set to 0xFF, transmits on all defined CBUS connections
  */
-void cbusSendMsg(BYTE cbusNum, BYTE *msg)
+BOOL cbusSendMsg(BYTE cbusNum, BYTE *msg)
 {
     #if defined(CBUS_OVER_CAN)
         if ((cbusNum == CBUS_OVER_CAN) || (cbusNum == 0xFF) )
-            canSend( msg, (msg[d0] >> 5)+1);	// data length from opcode
+            return canSend( msg, (msg[d0] >> 5)+1);	// data length from opcode
 
     #endif
 
@@ -237,7 +238,7 @@ void cbusSendMsg(BYTE cbusNum, BYTE *msg)
 
         }
     #endif
-
+        return TRUE;
 }
 
 
