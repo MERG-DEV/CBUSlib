@@ -70,7 +70,7 @@ EEPROM.h - Definitions for EEPROM usage - part of CBUS libraries for PIC 18F
 #define EE_CAN_ID           ((BYTE*)(EE_TOP-1))     // 7 bit CANID 1 to 127
 #define EE_NODE_ID          ((WORD*)(EE_TOP-3))     // 16 bit value for node number
 #define EE_FLIM_MODE        ((BYTE*)(EE_TOP-4))     // Enumerated value for SLiM/FLiM mode
-#define EE_RESET            ((BYTE*)(EE_TOP-5))     // if not 0xCA will reset EEPROM todefault values
+#define EE_VERSION          ((BYTE*)(EE_TOP-5))     // Indicates if EEPROM needs initialising or upgradeing
 
 
 #endif	// __EEPROM_H
