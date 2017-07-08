@@ -67,9 +67,9 @@
 #endif
 
 FlashFlags  flashFlags;
-BYTE        flashbuf[_FLASH_WRITE_SIZE];    // Assumes that Erase and Write are the same size
+BYTE        flashbuf[64];    // Assumes that Erase and Write are the same size
 BYTE        flashidx;
-WORD        flashblock;                     //address of current 64 byte flash block
+WORD        flashblock;     //address of current 64 byte flash block
 
 #ifndef __XC8__
 #pragma code APP
@@ -84,7 +84,9 @@ BYTE readFlashBlock(WORD flashAddr);
 /**
  *  Initialise variables for Flash program tracking.
  */
-void initRomOps() {
+void initRomOps() 
+
+{
     flashFlags.asByte = 0;
     flashblock = 0xFFFF;
 }
@@ -95,7 +97,8 @@ void initRomOps() {
  * Fast write, this requires no 0 to 1 bit changes, only 1 to 0 bits are allowed. 
  * Or use write_flash_long with erase before write 
  */
- void  writeFlashShort(void) {
+ void  writeFlashShort(void) 
+ {
     
 #ifdef __XC8__
     TBLPTR = flashblock & ~(64 - 1); //force row boundary
@@ -130,7 +133,6 @@ void initRomOps() {
     TBLPTR=flashblock;
     FSR0=ptr;
     
-
 #ifdef CPUF18K
     flashidx=64;            // K series processors can write 64 bytes in one operation
 #else
@@ -157,7 +159,6 @@ _endasm
         EECON2 = 0xaa;          // write 0xaa
         EECON1bits.WR = 1;      // start writing
         EECON1bits.WREN = 0;    // disable write to memory
-        
 _asm
         TBLRDPOSTINC            // Table pointer ready for next 32
 _endasm
@@ -174,7 +175,8 @@ _endasm
 /**
  * Flash block write. flash 64 byte buffer with block erase.
  */
-void  writeFlashWithErase(void) {
+void  writeFlashWithErase(void) 
+{
     // Erase block first
     TBLPTR=flashblock;
     EECON1bits.EEPGD = 1;   // 1=Program memory, 0=EEPROM
@@ -194,13 +196,14 @@ void  writeFlashWithErase(void) {
 /**
  * If the buffer has unwritten changes then write these out to Flash.
  */
- void flushFlashImage( void ) {
-     if (flashFlags.modified) {
-        if(flashFlags.zeroto1) {
+ void flushFlashImage( void ) 
+ {
+     if (flashFlags.modified) 
+     {
+        if(flashFlags.zeroto1) 
             writeFlashWithErase();
-        } else {
+        else
             writeFlashShort();
-        }
      }
  }
 
@@ -219,20 +222,24 @@ void  writeFlashWithErase(void) {
  * @param addr the address to be read from Flash
  * @return the byte read from Flash
  */
-BYTE readFlashBlock(WORD flashAddr) {
+BYTE readFlashBlock(WORD flashAddr) 
+{
     WORD ptr;
 
-    if(flashFlags.valid !=5) {
+    if(flashFlags.valid !=5) 
+    {
         flashFlags.asByte=5;  //force reload
     }
 
-    if(flashFlags.loaded && flashblock!=(flashAddr & 0XFFC0)) {
+    if(flashFlags.loaded && flashblock!=(flashAddr & 0XFFC0)) 
+    {
         //detected access from a different block so we need to write this one (if it has been changed)
         flushFlashImage();
         flashFlags.asByte=5;
     }
 
-    if(!flashFlags.loaded) {
+    if(!flashFlags.loaded) 
+    {
         // load the buffer
         flashblock = flashAddr & 0xFFC0;
 #ifdef __XC8__
@@ -261,6 +268,7 @@ READ_BLOCK:
 _endasm
 #endif
         flashFlags.loaded = TRUE;
+
     }
     return flashbuf[flashAddr & 0X3F];
 }
@@ -271,24 +279,25 @@ _endasm
  * @param addr the destination address of the byte to be written
  * @param data the data byte to be written
  */
-void writeFlashImage(BYTE * addr, BYTE data) {
+void writeFlashImage(BYTE * addr, BYTE data) 
+{
     unsigned char *offset;
 
-    if(flashFlags.valid !=5) {
+    if(flashFlags.valid !=5) 
+    {
         flashFlags.valid=5;  //force reload
     }
 
-    if (!flashFlags.loaded || flashblock!=((WORD)addr & 0XFFC0)) {
+    if (!flashFlags.loaded || flashblock!=((WORD)addr & 0XFFC0)) 
         readFlashBlock((WORD)addr);
-    }
+    
     offset = &flashbuf[(WORD)addr & 0x3F];
 
-    if(data !=*offset) {
+    if(data !=*offset) 
         flashFlags.modified=1;
-    }
-    if(data & ~*offset) {
+    
+    if(data & ~*offset) 
         flashFlags.zeroto1=1;
-    }
     *offset=data;
 }
 
@@ -297,7 +306,10 @@ void writeFlashImage(BYTE * addr, BYTE data) {
  * @param flashAddr the destination address of the byte to be written
  * @param flashData the data byte to be written
  */
-void writeFlashByte( BYTE * flashAddr, BYTE flashData ) {
+void writeFlashByte( BYTE * flashAddr, BYTE flashData ) 
+
+
+{
     writeFlashImage( flashAddr, flashData );    // Put data into memory image, if necessary flush image to flash first
     flushFlashImage();                          // Flush any changes
 }
@@ -307,7 +319,10 @@ void writeFlashByte( BYTE * flashAddr, BYTE flashData ) {
  * @param flashAddr the destination address of the byte to be written
  * @param flashData the data word to be written
  */
-void setFlashWord( WORD * flashAddr, WORD flashData ) {
+void setFlashWord( WORD * flashAddr, WORD flashData ) 
+
+
+{
      writeFlashImage( (BYTE*)flashAddr, (BYTE)(flashData & 0x00FF) );    // Put LS byte into memory image, if necessary flush image to flash first
      writeFlashImage( ((BYTE*)flashAddr)+1, (BYTE)(flashData >> 8) );      // Repeat for MSByte
 }
@@ -318,13 +333,13 @@ void setFlashWord( WORD * flashAddr, WORD flashData ) {
  * @param bufferaddr
  * @param bufferSize
  */
-void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize ) {
+void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize ) 
+{
     BYTE    i;
-    for ( i=0; i<bufferSize; i++) {
+    
+    for ( i=0; i<bufferSize; i++) 
         writeFlashImage( flashAddr+i, bufferaddr[i] );
-    }
 }
-
 // *************** EEPROM operations
 
 /**
@@ -344,11 +359,6 @@ BYTE ee_read(WORD addr) {
     while (EECON1bits.RD)
         ;
 #ifdef __XC8
-    asm("NOP");                 /* data available after a NOP */
-    asm("NOP");                 /* data available after a NOP */
-    asm("NOP");                 /* data available after a NOP */
-    asm("NOP");                 /* data available after a NOP */
-    asm("NOP");                 /* data available after a NOP */
     asm("NOP");                 /* data available after a NOP */
 #else
      _asm
@@ -395,7 +405,9 @@ void ee_write(WORD addr, BYTE data) {
  * @param addr the address to be read
  * @return the WORD from EEPROM
  */
-WORD ee_read_short(WORD addr) {
+WORD ee_read_short(WORD addr) 
+
+{
 	WORD ee_addr = addr;
     WORD ret = ee_read(ee_addr++);
     

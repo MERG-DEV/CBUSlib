@@ -62,10 +62,12 @@ BYTE    cbusMsg[pktsize]; // Global buffer for fast access to CBUS packets - do 
 #pragma code APP
 #endif
 
+
 // Initialise CBUS  - Note: CANID only used when bus type is CAN
 
 void cbusInit( WORD initNodeID  )
 {
+    
     nodeID = ee_read_short( (WORD)EE_NODE_ID );
 
     if (nodeID == 0xFFFF)

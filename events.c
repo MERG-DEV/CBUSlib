@@ -54,7 +54,7 @@
  * 
  * 
  * Currently written for:
- *  * XC8 compiler
+ *  * C18 compiler
  * 
  * This file used the following PIC peripherals:
  *  * none

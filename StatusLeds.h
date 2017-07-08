@@ -57,7 +57,8 @@ CBUS Status LEDs - Definitions for the SLiM and FLiM status LEDs
 #define SLOW_FLASH_TIME HALF_SECOND     // On time for a slow flash
 #define FAST_FLASH_TIME HALF_SECOND/3   // On time for a fast flash - 3 times as fast as slow flash
 
-enum FlashStates {
+enum FlashStates 
+{
     flNone=0,	// No flashing
     flFLiMSlow,	// SLow flash of FLiM LED
     flFLiMFast  // Fast flash of FLiM LED

@@ -70,9 +70,8 @@
 #endif
 #endif
 
-
-
 // Definitions for inline assembler
+
 #ifdef __18CXX
 #define W   0
 #define F   1
@@ -104,6 +103,7 @@ void setFlashWord( WORD * flashAddr, WORD flashData );
 void setFlashBuffer( BYTE * flashAddr, BYTE *bufferaddr, BYTE bufferSize );
 void flushFlashImage( void );
 BYTE readFlashBlock(WORD flashAddr);
+
 
 BYTE ee_read(WORD addr);
 void ee_write(WORD addr, BYTE data);

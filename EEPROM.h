@@ -71,9 +71,6 @@ EEPROM.h - Definitions for EEPROM usage - part of CBUS libraries for PIC 18F
 #define EE_NODE_ID          ((WORD*)(EE_TOP-3))     // 16 bit value for node number
 #define EE_FLIM_MODE        ((BYTE*)(EE_TOP-4))     // Enumerated value for SLiM/FLiM mode
 #define EE_RESET            ((BYTE*)(EE_TOP-5))     // if not 0xCA will reset EEPROM todefault values
-//#define EE_EV_COUNT         ((BYTE*)(EE_TOP-5))    // Number of events stored
-//#define EE_EV_FREE          ((BYTE*)(EE_TOP-6))    // Number of event slots free (note - may not be what you think because some events can take more than one slot)
 
-//#define MLA_INT_EE_SIZE    EE_OP_STATE  // Space remaining for MLA usage
 
 #endif	// __EEPROM_H

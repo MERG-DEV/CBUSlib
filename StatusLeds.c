@@ -59,27 +59,28 @@ enum FlashStates    flashState;
 /**
  * Initialise with both LEDs on.
  */
-void initStatusLeds() {
-    flashState = flNone;
+void initStatusLeds() 
+{
     TRIS_LED1Y = 0;
     TRIS_LED2G = 0;
-    LED1Y = 1;
-    LED2G = 1;
+    LED1Y = 0;
+    LED2G = 0;
+    flashState = flNone;
 }
-
 /**
  * Set the Green LED and turn of the Yellow LED.
  */
-void setSLiMLed() {
+void setSLiMLed() 
+{
     LED1Y = 0;
     LED2G = 1;
     flashState = flNone;
 }
-
 /**
  * Set the yellow LED and turn off the green LED.
  */
-void setFLiMLed() {
+void setFLiMLed() 
+{
     LED1Y = 1;
     LED2G = 0;
     flashState = flNone;
@@ -89,18 +90,19 @@ void setFLiMLed() {
  * Sets either the FLiM or the SLiM LED.
  * @param FLiMLED if true turns on the FLiM LED otherwise turn on the SLiM LED.
  */
-void setStatusLed( BOOL FLiMLED ) {
-    if (FLiMLED) {
+void setStatusLed( BOOL FLiMLED ) 
+{
+    if (FLiMLED)
         setFLiMLed();
-    } else {
+    else
         setSLiMLed();
-    }
 }
 
 /**
  * Flash the FLiM LED.
  */
-void doFLiMFlash() {
+void doFLiMFlash() 
+{
     LED1Y = !LED1Y;
     flashTime.Val = tickGet();
 }
@@ -109,7 +111,8 @@ void doFLiMFlash() {
  * Start the FLiM LED flashing at the specified rate.
  * @param fast if true flash the LED quickly
  */
-void startFLiMFlash( BOOL fast ) {
+void startFLiMFlash( BOOL fast ) 
+{
     flashState = (fast? flFLiMFast : flFLiMSlow);
     doFLiMFlash();
 }
@@ -117,18 +120,18 @@ void startFLiMFlash( BOOL fast ) {
 /**
  * Process the FLiM LED flashing. Call regularly.
  */
-void checkFlashing() {
-    switch (flashState) {
+void checkFlashing() 
+{
+    switch (flashState) 
+    {
         case flFLiMSlow:
-            if (tickTimeSince(flashTime) > SLOW_FLASH_TIME) {
+            if (tickTimeSince(flashTime) > SLOW_FLASH_TIME)
                 doFLiMFlash();
-            }
             break;
             
         case flFLiMFast:
-            if (tickTimeSince(flashTime) > FAST_FLASH_TIME) {
+            if (tickTimeSince(flashTime) > FAST_FLASH_TIME)
                 doFLiMFlash();
-            }
             break;
     }        
 }

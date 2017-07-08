@@ -128,17 +128,18 @@ void flimInit(void) {
  * A module that uses a mechanism for FLiM entry other than a simple push button
  * can define FLiM_SW as a macro or procedure call as required.
  */
-void FLiMSWCheck( void ) {
+void FLiMSWCheck( void )
+{
 
     switch (flimState)
     {
        case fsFLiM:
        case fsSLiM:
-            if (!FLiM_SW) {
+            if (!FLiM_SW) 
+            {
                 prevFlimState = flimState;
                 flimState = fsPressed;
-                
-                        
+                                       
                 cbusMsg[d1] = (nodeID >>8)&0xff;
                 cbusMsg[d2] = nodeID & 0xff;
                     // This isn't part of the CBUS spec but it is very useful
@@ -146,86 +147,99 @@ void FLiMSWCheck( void ) {
                 switchTime.Val = tickGet();
             }
             break;
+            
         case fsPressed:
-            if (!FLiM_SW) {
-                if (tickTimeSince(switchTime) > FLiM_HOLD_TIME) {
+            if (!FLiM_SW) 
+            {
+                if (tickTimeSince(switchTime) > FLiM_HOLD_TIME) 
+                {
                     flimState = fsFlashing;   // Held long enough so start flashing LED
                     startFLiMFlash(FALSE);    // slow flash for FLiM setup
                 }
-            } else if ((prevFlimState == fsFLiM) && (tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) {
-                // short press and release in FLiM
+            } 
+            else if ((prevFlimState == fsFLiM) && (tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) // short press and release in FLiM
+            {
                 flimState = fsFLiMSetup;
                 startFLiMFlash(FALSE);       // slow flash for FLiM setup
                 requestNodeNumber();
-            } else {
+            } 
+            else 
+            {
                 flimState = prevFlimState; // But not held down long enough, revert to previous state
             }
             break;
+            
         case fsFlashing:
-            if (FLiM_SW) {
-                // Button released
-                if (prevFlimState == fsSLiM) {
+            if (FLiM_SW) // Button released
+            {  
+                if (prevFlimState == fsSLiM) 
+                {
                     flimState = fsFLiMSetup;
                     requestNodeNumber();
-                } else {
+                    
+                } 
+                else 
+                {
                     flimState = fsSLiM;
                     SLiMRevert();
                     setSLiMLed();
                     SaveNodeDetails(nodeID, fsSLiM);
                 }
-            } else {
-                if (tickTimeSince(switchTime) > SET_TEST_MODE_TIME) {
-                    flimState = fsPressedTest;
-                    switchTime.Val = tickGet();
-                    startFLiMFlash(TRUE);       // Fast flash for test mode
-                }
+            } 
+            else if (tickTimeSince(switchTime) > SET_TEST_MODE_TIME) 
+            {
+                flimState = fsPressedTest;
+                switchTime.Val = tickGet();
+                startFLiMFlash(TRUE);       // Fast flash for test mode
+                
             }
             break;
+            
         case fsFLiMSetup:  // Button pressed whilst in setup mode
-            if (!FLiM_SW) {
+            if (!FLiM_SW) 
+            {
                 flimState = fsPressedSetup; // Wait for debounce
                 switchTime.Val = tickGet();
             }
             break;
+            
         case fsPressedSetup:   // Button was pressed whilst in setup mode
-            if (FLiM_SW) {
-                if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) {
-                    // button released after debounce time
+            if (FLiM_SW) 
+            {
+                if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) // button released after debounce time
+                {
                     flimState = prevFlimState;
                     setStatusLed(flimState == fsFLiM);
-                } else {
+                } 
+                else 
                     flimState = fsFLiMSetup;
-                }
             }
             break;
+            
         case fsTestMode:   // Button was pressed whilst in test mode
-            if (!FLiM_SW) {
+            if (!FLiM_SW) 
+            {
                 flimState = fsPressedTest;
                 switchTime.Val = tickGet();
             }
             break;
+            
         case fsPressedTest:   // Button was pressed whilst in test mode
-            if (FLiM_SW) {
-                // button now released
-                if ((tickTimeSince(switchTime) > FLiM_HOLD_TIME)) {
-                    // button released after full FLiM switch time 
+            if (FLiM_SW) // button now released
+                if ((tickTimeSince(switchTime) > FLiM_HOLD_TIME))  // button released after full FLiM switch time
+                {
                     flimState = prevFlimState;
                     setStatusLed(flimState == fsFLiM);
-                } else {
-                    if ((tickTimeSince(switchTime) > NEXT_TEST_TIME)) {
-                        // button released after time for next test selection
-                        flimState = fsNextTest;
-                    } else {
-                        if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) {
-                            // button released after debounce time
-                            flimState = fsTestInput;    // An input to the current test mode (eg: repeat test)
-                        } else {
-                            flimState = fsTestMode;     // Button not held down long enough to do anything, so just carry on
-                        }
-                    }
-                }
-            }
+                } 
+                else if ((tickTimeSince(switchTime) > NEXT_TEST_TIME)) // button released after time for next test selection
+                    flimState = fsNextTest;
+                
+                else if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) // button released after debounce time
+                    flimState = fsTestInput;    // An input to the current test mode (eg: repeat test)
+                else 
+                    flimState = fsTestMode;     // Button not held down long enough to do anything, so just carry on            
             break;
+            
         default:
             // Should never get here... but just in case
             flimState = fsSLiM;
@@ -244,11 +258,13 @@ void FLiMSWCheck( void ) {
  * (for example, when pusbbutton pressed.)
  * Sends the node number allocated.
  */
-void requestNodeNumber( void ) {
+void requestNodeNumber( void ) 
+{
     BYTE local_cbusMsg[d0+3];
 
     // send request node number packet
-    cbusSendOpcNN(ALL_CBUS, OPC_RQNN, -1, local_cbusMsg);  
+    cbusSendOpcNN(ALL_CBUS, OPC_RQNN, -1, local_cbusMsg);
+    
 } // requestNodeNumber
 
 
@@ -256,9 +272,11 @@ void requestNodeNumber( void ) {
  ** Revert to SLiM mode - called when module wants to go back to slim.
  * For example when pushbutton pressed long enough whilst in FLiM mode.
  */
-void SLiMRevert(void) {   
+void SLiMRevert(void) 
+{   
     // send nn release packet
     cbusSendOpcNN(ALL_CBUS, OPC_NNREL, -1, cbusMsg);
+    
 } // SLiMrevert
 
 /** 
@@ -268,7 +286,8 @@ void SLiMRevert(void) {
  * @param msg the CBUS message
  * @return true if the message was processed
  */
-BOOL parseCBUSMsg(BYTE *msg) {
+BOOL parseCBUSMsg(BYTE *msg)                // Process the incoming message
+{
     // check this is an EVENT
     if (((msg[d0] & EVENT_SET_MASK) == EVENT_SET_MASK) && ((~msg[d0] & EVENT_CLR_MASK)== EVENT_CLR_MASK)) {
 	// it is an event pass to the module's event processing
@@ -287,7 +306,8 @@ BOOL parseCBUSMsg(BYTE *msg) {
  * @param rx_ptr the received CBUS message
  * @return true if the message was processed
  */
-BOOL parseFLiMCmd(BYTE *rx_ptr) {
+BOOL parseFLiMCmd(BYTE *rx_ptr) 
+{
 #ifdef __XC8__
     BOOL     cmdProcessed = FALSE;
 #else
@@ -295,97 +315,117 @@ BOOL parseFLiMCmd(BYTE *rx_ptr) {
 #endif
 
 
-    if (flimState == fsFLiMLearn) {
+    if (flimState == fsFLiMLearn) 
+    {
         cmdProcessed = TRUE;
 
-        switch(rx_ptr[d0]) {
+        switch(rx_ptr[d0]) 
+        {
         case OPC_NNLRN:     // If in learn mode and receive a learn message for another node, must exit learn mode
-            if (thisNN(rx_ptr)) {
+            if (thisNN(rx_ptr))
                 break;  // Ignore if for us (already in learn) but drop through to exit learn mode if not addressed to us
-            }
             /* fall through */
         case OPC_NNULN:
             // Release node from learn mode
              flimState = fsFLiM;
             break;
+            
         case OPC_NNCLR:
             // Clear all events
             doNnclr;
             break;
+            
         case OPC_EVULN:
             // Unlearn event
             doEvuln( (((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2], (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
             break;
+            
         case OPC_EVLRN:
             // Teach event whilst in learn mode
             doEvlrn( (rx_ptr[d1] << 8) + rx_ptr[d2] , (rx_ptr[d3] << 8) + rx_ptr[d4], rx_ptr[d5], rx_ptr[d6]);
             break;
+            
         case OPC_EVLRNI:
             // Teach event whilst in learn mode with event index
             doEvlrn((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d6], rx_ptr[d7]);  // Current implementation does not use index to save learnt event
             break;
+            
         case OPC_REQEV:
             // Read event variable by event id
             doReqev((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d5]);
             break;
+            
         default:
             cmdProcessed = FALSE;
             break;
         }
     } // in learn mode
 
-    if (!cmdProcessed && thisNN(rx_ptr)) {
-       // process commands specifically addressed to us
+    if (!cmdProcessed && thisNN(rx_ptr)) 
+    {   // process commands specifically addressed to us
         cmdProcessed = TRUE;
 
-    	switch(rx_ptr[d0]) {
-#ifdef BOOTLOADER_PRESENT
-            case OPC_BOOT:
-                // TODO implement call to bootloader
-                break;
-#endif
+    	switch(rx_ptr[d0]) 
+        {
             case OPC_RQNPN:
                 // Read one node parameter by index
                 doRqnpn(rx_ptr[d3]);
                 break;
+                
             case OPC_NNLRN:
                 // Put node into learn mode
                 if (flimState == fsFLiM)
                     flimState = fsFLiMLearn;
                 break;
+                
               case OPC_NNEVN:
                 // Read available event slots
                 doNnevn();
                 break;
+                
             case OPC_NERD:
                 // Read all stored events
                 doNerd();
                 break;
+                
             case OPC_RQEVN:
                 // Read number of stored events
                 doRqevn();
                 break;
+                
             case OPC_NVRD:
                 // Read value of a node variable
                 doNvrd(rx_ptr[d3]);
                 break;
+                
             case OPC_NVSET:
                 // Set a node variable
                 doNvset(rx_ptr[d3], rx_ptr[d4]);
                 break;
+                
             case OPC_REVAL:
                 // Read event variable by index
                 doReval();
                 break;
+
+#ifdef BOOTLOADER_PRESENT
+            case OPC_BOOT:
+                // TODO implement call to bootloader
+                // Enter bootloader mode 
+                ee_write(EE_BOOT_FLAG, 0xFF);
+                break;
+#endif
+                
             default:
                 cmdProcessed = FALSE;
                 break;
         }
     } // this NN
 
-    if (!cmdProcessed) {   
-        // Process any command not sent specifically to us that still needs action
-        if (rx_ptr[d0] == OPC_QNN) {
+    if (!cmdProcessed) 
+    {   // Process any command not sent specifically to us that still needs action
+        if (rx_ptr[d0] == OPC_QNN) 
+        {
             QNNrespond();          // Respond to node query 	//  ??? update to do new spec response agreed
             cmdProcessed = TRUE;
         }
@@ -394,22 +434,28 @@ BOOL parseFLiMCmd(BYTE *rx_ptr) {
     // In setup mode, also check for FLiM commands not addressed to
     // any particular node
 
-    if	((!cmdProcessed) && (flimState == fsFLiMSetup)) {
+    if	((!cmdProcessed) && (flimState == fsFLiMSetup)) 
+    {
         cmdProcessed = TRUE;
 
-        switch(rx_ptr[d0]) {
+        switch(rx_ptr[d0]) 
+        {
             case OPC_RQNP:
                     // Read node parameters
                     doRqnp();
                     break;
+                    
             case OPC_RQMN:
                     // Read module type name
                     doRqmn();
                     break;
+                    
             case OPC_SNN:
                     // Set node number
                     doSnn(rx_ptr);
                     break;
+                    
+                    
             default:
                     cmdProcessed = FALSE;
             break;
@@ -427,7 +473,8 @@ BOOL parseFLiMCmd(BYTE *rx_ptr) {
  *  QNN Respond.
  * Send response bytes to QNN query
  */
-void QNNrespond() {
+void QNNrespond() 
+{
     FLiMprmptr  paramptr;
 
     paramptr = (FLiMprmptr)&FLiMparams;
@@ -442,34 +489,39 @@ void QNNrespond() {
 /**
  * Send node number acknowledge.
  */
-void doNNack( void ) {
+void doNNack( void ) 
+{
 	cbusSendOpcMyNN(0, OPC_NNACK, cbusMsg);
 } // doNNack
 
 /**
  * Read one node parameter by index.
  */
-void doRqnpn(BYTE idx) {
+void doRqnpn(BYTE idx) 
+{
     FLiMprmptr  paramptr;
 
     paramptr = (FLiMprmptr)&FLiMparams;
 
-    if (idx <= FCUparams.parameter_count) {
+    if (idx <= FCUparams.parameter_count) 
+    {
         cbusMsg[d0] = OPC_PARAN;
         cbusMsg[d3] = idx;
 
-        if (idx == 0) {
+        if (idx == 0) 
             cbusMsg[d4] = FCUparams.parameter_count;
-        } else if ((idx >= PAR_CPUMID) && (idx < PAR_CPUMAN)  ) {
+        else if ((idx >= PAR_CPUMID) && (idx < PAR_CPUMAN)  ) 
             cbusMsg[d4] = readCPUType() >> (( idx - PAR_CPUMID )*8);
-        } else {
+        else 
             cbusMsg[d4] = paramptr->bytes[idx-1];
-        }
-        if ((idx == PAR_FLAGS) && (flimState == fsFLiM)) {
+
+        if ((idx == PAR_FLAGS) && (flimState == fsFLiM)) 
             cbusMsg[d4] |= PF_FLiM;
-        }
+        
     	cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
-    } else {
+    }
+    else 
+    {
         doError(CMDERR_INV_PARAM_IDX);
     }
 } // doRqnpn
@@ -482,7 +534,8 @@ void doRqnpn(BYTE idx) {
  * @param NVindex the index of the Node Variable
  */
 void doNvrd(BYTE NVindex)
-{   // check the bounds of NVindex. It starts at 1
+{   
+    // check the bounds of NVindex. It starts at 1
     if ((NVindex == 0) || (NVindex > NV_NUM)) {
         doError(CMDERR_INV_NV_IDX);
     } else {
@@ -505,7 +558,8 @@ void doNvrd(BYTE NVindex)
  * @param NVvalue the new NV value
  */
 void doNvset(BYTE NVindex, BYTE NVvalue)
-{   // check the bounds of NVindex. It starts at 1
+{   
+    // check the bounds of NVindex. It starts at 1
     if ((NVindex == 0) || (NVindex >= NV_NUM)) {
         doError(CMDERR_INV_NV_IDX);
     } else {
@@ -538,7 +592,8 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
  * Returns the first set of parameters that will fit in a CAN message.
  * Additional parameters added since this opcode was defined can only be read using RQNPN.
  */
-void doRqnp(void) {
+void doRqnp(void) 
+{
     FLiMprmptr  paramptr;
     BYTE        copyCounter;
 
@@ -546,22 +601,27 @@ void doRqnp(void) {
 
     cbusMsg[d0] = OPC_PARAMS;
 
-    for (copyCounter = d1; copyCounter <= d7; copyCounter++) {
+    for (copyCounter = d1; copyCounter <= d7; copyCounter++) 
+    {
         cbusMsg[copyCounter] = paramptr->bytes[copyCounter-d1];
     }
+    
     /* Can't send PARAM 8
     if (flimState == fsFLiM) {
         cbusMsg[d1+PAR_FLAGS-1] |= PF_FLiM;
      }
      */
+    
     cbusSendMsg(0, cbusMsg);
+    
 } // doRqnp
 
 /** Read node parameters in setup mode.
  * Returns the first set of parameters that will fit in a CAN message.
  * Additional parameters added since this opcode was defined can only be read using RQNPN.
  */
-void doRqmn(void) {
+void doRqmn(void) 
+{
     BYTE        copyCounter, padCounter;
 #ifdef __XC8__
     char*   namptr;
@@ -570,6 +630,7 @@ void doRqmn(void) {
 #endif
     DWORD       namadr;
  
+    
     namadr = FCUparams.module_type_name;
 #ifdef __XC8__
     namptr = (char*)namadr;
@@ -577,24 +638,90 @@ void doRqmn(void) {
     namptr = (rom char*)namadr;
 #endif
 
+    
+    
     cbusMsg[d0] = OPC_NAME;
-    for (copyCounter = 0; *namptr != 0; copyCounter++ ) {
+    
+    for (copyCounter = 0; *namptr != 0; copyCounter++ ) 
       cbusMsg[copyCounter+d1] = *namptr++;
-    }
-    for (padCounter = copyCounter; padCounter < 7; padCounter++ ) {
+  
+    for (padCounter = copyCounter; padCounter < 7; padCounter++ ) 
       cbusMsg[padCounter+d1] = ' ';
-    }
+    
     cbusSendMsg( 0, cbusMsg );
+    
 } // doRqmn
+
+/**
+ *  Set node number while in setup mode.
+ * @param rx_ptr the CBUS message
+ */
+void doSnn( BYTE *rx_ptr ) 
+{
+    
+    // Get new node number for FLiM
+    nodeID = rx_ptr[d1];
+    nodeID <<= 8;
+    nodeID +=  rx_ptr[d2];
+    flimState = fsFLiM;
+    
+    // Store new node id and mode to nonvol EEPROM
+
+    SaveNodeDetails(nodeID, fsFLiM);
+ 
+    // Acknowledge new node id
+
+    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );
+    setFLiMLed();
+    
+} // doSnn
+
+
+/**
+ * Send a CBUS error message.
+ * @param code the error code - see cbusdefs8m.h
+ */
+void doError(unsigned int code) 
+{
+		cbusMsg[d0] = OPC_CMDERR;
+		cbusMsg[d3] = code;
+		cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
+}
+
+/**
+ * Test to see if the CBUS message matches our NN.
+ * @param rx_ptr the CBUS message
+ * @return Trus if NN matches ours
+ */
+BOOL thisNN( BYTE *rx_ptr) 
+{
+	if (((rx_ptr[d0] >> 5) >= 2) && (((WORD)(rx_ptr[d1])<<8) + rx_ptr[d2]) == nodeID)
+	 	return TRUE;
+	else
+	 	return FALSE;
+}
+
+/**
+ * Save the NN and current state in EEPROM.
+ * @param nodeID the NN
+ * @param flimState the current state
+ */
+void SaveNodeDetails(WORD nodeID, enum FLiMStates flimState)
+{
+    ee_write_short((WORD)EE_NODE_ID, nodeID);
+    ee_write((WORD)EE_FLIM_MODE, flimState);
+} // SaveNodeDetails
 
 
 /**
  * Clear all Events.
  */
-void doNnclr(void) {
-    if (flimState == fsFLiMLearn) {
+void doNnclr(void) 
+{
+    if (flimState == fsFLiMLearn) 
         clearAllEvents();
-    } else {
+    else 
+    {
             cbusMsg[d3] = CMDERR_NOT_LRN;
             cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
  	}
@@ -609,17 +736,20 @@ void doNnclr(void) {
  * @param evNum the EV number
  * @param evVal the EV value
  */
-void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) {
+void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) 
+{
     unsigned char error;
     // evNum starts at 1 - convert to zero based
-    if (evNum == 0) {
+    if (evNum == 0) 
+    {
         cbusMsg[d3] = CMDERR_INV_EV_IDX;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
     }
     evNum--;    // convert CBUS numbering (starts at 1) to internal numbering)
     error = addEvent(nodeNumber, eventNumber, evNum, evVal);
-    if (error) {
+    if (error) 
+    {
         // failed to write
         cbusMsg[d3] = error;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
@@ -634,13 +764,15 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) {
  * TODO check meaning of EN# Again not clear what the CBUS spec actually needs here as the Index is implementation
  * specific.
  */
-void doReval(void) {
+void doReval(void) 
+{
 	// Get event index and event variable number from message
 	// Send response with EV value
     unsigned char tableIndex = evtIdxToTableIndex(cbusMsg[d3]);
     unsigned char evNum = cbusMsg[d4];
     
-    if ((evNum == 0) || (evNum > EVperEVT)) {
+    if ((evNum == 0) || (evNum > EVperEVT)) 
+    {
         cbusMsg[d3] = CMDERR_INV_EV_IDX;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
@@ -648,8 +780,9 @@ void doReval(void) {
     evNum--;    // Convert from CBUS numbering (starts at 1 for produced action))
     
     // check it is a valid index
-    if (tableIndex < NUM_EVENTS) {
-        if (validStart(tableIndex)) {
+    if (tableIndex < NUM_EVENTS) 
+        if (validStart(tableIndex)) 
+        {
             int evVal = getEv(tableIndex, evNum);
 //            if (evVal >= 0) { // TODO will need to fix this to handle number of EVs used
                 cbusMsg[5] = evVal;
@@ -660,7 +793,6 @@ void doReval(void) {
 //            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
 //            return;
         }
-    }
     cbusMsg[d3] = CMDERR_INVALID_EVENT;
     cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
 } // doReval
@@ -670,7 +802,8 @@ void doReval(void) {
  * @param nodeNumber
  * @param eventNumber
  */
-void doEvuln(WORD nodeNumber, WORD eventNumber) {
+void doEvuln(WORD nodeNumber, WORD eventNumber) 
+{
     removeEvent(nodeNumber, eventNumber);
     // Don't send a WRACK
 }
@@ -682,16 +815,19 @@ void doEvuln(WORD nodeNumber, WORD eventNumber) {
  * @param eventNumber
  * @param evNum
  */
-void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
+void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) 
+{
     int evVal;
     // get the event
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
-    if (tableIndex == NO_INDEX) {
+    if (tableIndex == NO_INDEX) 
+    {
         cbusMsg[d3] = CMDERR_INVALID_EVENT;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
     }
-    if ((evNum == 0) || (evNum > EVperEVT)) {
+    if ((evNum == 0) || (evNum > EVperEVT)) 
+    {
         cbusMsg[d3] = CMDERR_INV_EV_IDX;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
@@ -712,61 +848,9 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum) {
 }
 
 
-/**
- *  Set node number while in setup mode.
- * @param rx_ptr the CBUS message
- */
-void doSnn( BYTE *rx_ptr ) {
-    // Get new node number for FLiM
-    nodeID = rx_ptr[d1];
-    nodeID <<= 8;
-    nodeID +=  rx_ptr[d2];
-    flimState = fsFLiM;
-    
-    // Store new node id and mode to nonvol EEPROM
-
-    SaveNodeDetails(nodeID, fsFLiM);
- 
-    // Acknowledge new node id
-
-    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );
-    setFLiMLed();
-} // doSnn
 
 
-/**
- * Send a CBUS error message.
- * @param code the error code - see cbusdefs8m.h
- */
-void doError(unsigned int code) {
-		cbusMsg[d0] = OPC_CMDERR;
-		cbusMsg[d3] = code;
-		cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
-}
 
-/**
- * Test to see if the CBUS message matches our NN.
- * @param rx_ptr the CBUS message
- * @return Trus if NN matches ours
- */
-BOOL thisNN( BYTE *rx_ptr) {
-	if (((rx_ptr[d0] >> 5) >= 2) && (((WORD)(rx_ptr[d1])<<8) + rx_ptr[d2]) == nodeID) {
-	 	return TRUE;
-	} else {
-	 	return FALSE;
-    }
-}
-
-/**
- * Save the NN and current state in EEPROM.
- * @param nodeID the NN
- * @param flimState the current state
- */
-void SaveNodeDetails(WORD nodeID, enum FLiMStates flimState)
-{
-    ee_write_short((WORD)EE_NODE_ID, nodeID);
-    ee_write((WORD)EE_FLIM_MODE, flimState);
-} // SaveNodeDetails
 
 /**
  * Blink green LED on to show busy doing commands, but overidden by flash if in FLiM setup mode.

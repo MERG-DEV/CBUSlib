@@ -108,7 +108,7 @@ void initTicker(unsigned char priority)
     for (i=clkMHz;i>0;i>>=1) // Work out timer prescaler value from clock MHz
         divider++;
 
-#if defined(__18CXX) || defined (CPUF18K)
+#if defined(__18CXX) || defined (__XC8__)
     TMR_CON = 0b00000000 | divider;     // Enable internal clock, prescaler on and set prescaler value
     TMR_IP = priority;
     TMR_IF = 0;
@@ -160,7 +160,7 @@ DWORD tickGet(void)
 {
     TickValue currentTime;
     
-#if defined(__18CXX) || defined(CPUF18K)
+#if defined(__18CXX) || defined(__XC8__)
     //BYTE failureCounter;
     BYTE IntFlag1;
     BYTE IntFlag2;

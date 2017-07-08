@@ -57,9 +57,13 @@
 #include <string.h>
 #ifdef __18CXX
 #pragma udata CANTX_FIFO
+
 far CanPacket canTxFifo[CANTX_FIFO_LEN];
+
 #pragma udata CANRX_FIFO
+
 far CanPacket canRxFifo[CANRX_FIFO_LEN];
+
 #pragma udata
 #else
 CanPacket canTxFifo[CANTX_FIFO_LEN];
@@ -387,7 +391,7 @@ BOOL canTX( CanPacket *msg )
         maxCanTxFifo = hiIndex - txIndexNextUsed;
   }
 
-  PIE5bits.TXB0IE = 1;  // Enable transmit buffer interrupt
+  TXBnIE = 1;  // Enable transmit buffer interrupt
  
   return !fullUp;   // Return true for successfully submitted for transmission
 }
@@ -434,12 +438,12 @@ void checkTxFifo( void )
 
             TXB0CONbits.TXREQ = 1;    // Initiate transmission
 
-            if (txIndexNextFree == 0xFF) {
+            if (txIndexNextFree == 0xFF) 
                 txIndexNextFree = txIndexNextUsed; // clear full status
-            }
-            if (++txIndexNextUsed == CANTX_FIFO_LEN ) {
+            
+            if (++txIndexNextUsed == CANTX_FIFO_LEN ) 
                 txIndexNextUsed = 0;
-            }
+            
             TXBnIE = 1;  // enable transmit buffer interrupt
         }
         else
@@ -454,13 +458,16 @@ void checkTxFifo( void )
         TXBnIF = 0;
         TXBnIE = 1;
     }
+    
+    
+    
 } // checkTxFifo
 
 // Called by ISR regularly to check for timeout
 
 void checkCANTimeout( void )
 {
-    if (canTransmitTimeout.Val != 0) {
+    if (canTransmitTimeout.Val != 0) 
         if (tickTimeSince(canTransmitTimeout) > CAN_TX_TIMEOUT)
         {    
             canTransmitFailed = TRUE;
@@ -468,7 +475,6 @@ void checkCANTimeout( void )
             TXB0CONbits.TXREQ = 0;  // abort timed out packet
             checkTxFifo();          //  See if another packet is waiting to be sent
         }
-    }
 }
 
 
@@ -620,6 +626,7 @@ void canFillRxFifo(void)
 // If enumeration complete, find and set new can id
 
 void processEnumeration(void)
+
 {
     BYTE i, newCanId, enumResult;
 
@@ -662,6 +669,7 @@ void processEnumeration(void)
 // Returns TRUE if packet is to be processed as a CBUS message
 
 BOOL checkIncomingPacket(CanPacket *ptr)
+
 {
     BYTE        incomingCanId;
     BOOL        msgFound;
@@ -736,15 +744,15 @@ void canTxError( void )
 
 void canInterruptHandler( void )
 {
-    if (FIFOWMIF) {      // Receive buffer high water mark, so move data into software fifo
+    if (FIFOWMIF)       // Receive buffer high water mark, so move data into software fifo
         canFillRxFifo();
-    }
-    if (ERRIF) {
+    
+    if (ERRIF) 
         canTxError();
-    }
-    if (TXBnIF) {
+    
+    if (TXBnIF) 
         checkTxFifo();
-    }
+    
     checkCANTimeout();
 }
 

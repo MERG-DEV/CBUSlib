@@ -57,6 +57,10 @@
     23/5/2017	Ported to XC8 by Ian Hogg 
 */
 
+#include "GenericTypeDefs.h"
+#include "events.h"
+#include "module.h"
+
 #define DEFAULT_NN 	0xDEAD
 
 #define FLiM_DEBOUNCE_TIME HUNDRED_MILI_SECOND
@@ -64,9 +68,7 @@
 #define SET_TEST_MODE_TIME 8 * ONE_SECOND
 #define NEXT_TEST_TIME ONE_SECOND
 
-#include "GenericTypeDefs.h"
-#include "events.h"
-#include "module.h"
+
 
 extern BYTE BlinkLED( BOOL blinkstatus );
 
@@ -167,7 +169,9 @@ extern volatile rom near ModuleNvDefs * NV;                 // pointer to NVs in
 
 
 // State machine for FliM operations
-enum FLiMStates {
+
+enum FLiMStates 
+{
     fsSLiM=0,		// In SLiM, button not pressed
     fsFLiM,		// In FLiM mode
     fsPressed,          // Button pressed, waiting for long enough
@@ -186,6 +190,7 @@ enum FLiMStates {
 };
 
 // External variables for other modules to access FLiM
+
 
 
 extern BOOL	NV_changed;	
