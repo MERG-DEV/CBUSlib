@@ -483,7 +483,7 @@ void doRqnpn(BYTE idx) {
  */
 void doNvrd(BYTE NVindex)
 {   // check the bounds of NVindex. It starts at 1
-    if ((NVindex == 0) || (NVindex >= NV_NUM)) {
+    if ((NVindex == 0) || (NVindex > NV_NUM)) {
         doError(CMDERR_INV_NV_IDX);
     } else {
         WORD flashIndex;
@@ -651,14 +651,14 @@ void doReval(void) {
     if (tableIndex < NUM_EVENTS) {
         if (validStart(tableIndex)) {
             int evVal = getEv(tableIndex, evNum);
-            if (evVal >= 0) {
+//            if (evVal >= 0) {
                 cbusMsg[5] = evVal;
                 cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
                 return;
-            }
-            cbusMsg[d3] = CMDERR_INV_EV_IDX;
-            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-            return;
+//            }
+//            cbusMsg[d3] = CMDERR_INV_EV_IDX;
+//            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+//            return;
         }
     }
     cbusMsg[d3] = CMDERR_INVALID_EVENT;
