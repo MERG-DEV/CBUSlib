@@ -651,7 +651,7 @@ void doReval(void) {
     if (tableIndex < NUM_EVENTS) {
         if (validStart(tableIndex)) {
             int evVal = getEv(tableIndex, evNum);
-//            if (evVal >= 0) {
+//            if (evVal >= 0) { // TODO will need to fix this to handle number of EVs used
                 cbusMsg[5] = evVal;
                 cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
                 return;
