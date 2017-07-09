@@ -560,7 +560,7 @@ void doNvrd(BYTE NVindex)
 void doNvset(BYTE NVindex, BYTE NVvalue)
 {   
     // check the bounds of NVindex. It starts at 1
-    if ((NVindex == 0) || (NVindex >= NV_NUM)) {
+    if ((NVindex == 0) || (NVindex > NV_NUM)) {
         doError(CMDERR_INV_NV_IDX);
     } else {
         WORD flashIndex;
