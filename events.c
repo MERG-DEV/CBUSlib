@@ -113,18 +113,19 @@ typedef union
 {
     struct
     {
-        BOOL    continues:1;    // there is another entry 
+        unsigned char maxEvUsed:5;  // How many of the EVs in this row are used. Only valid if continues is clear
+        BOOL    continued:1;    // there is another entry 
         BOOL    continuation:1; // Continuation of previous event entry
-        BOOL    freeEntry:1;    // not used - takes priority over other flags
+        BOOL    freeEntry:1;    // this row in the table is not used - takes priority over other flags
     };
     BYTE    asByte;       // Set to 0xFF for free entry, initially set to zero for entry in use, then producer flag set if required.
 } EventTableFlags;
 
 typedef struct {
-    Event event;    // the NN and EN
+    EventTableFlags flags;  // put first so could potentially use the Event bytes for EVs in subsequent rows.
     BYTE next;      // index to continuation also indicates if entry is free
-    EventTableFlags flags;
-    BYTE evs[EVENT_TABLE_WIDTH];
+    Event event;    // the NN and EN
+    BYTE evs[EVENT_TABLE_WIDTH];    // EVENT_TABLE_WIDTH is maximum of 31 as we have 5 bits of maxEvUsed
 } EventTable;
 #ifdef __XC8
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
@@ -270,7 +271,7 @@ unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
     // set the free flag
     writeFlashByte((BYTE*)&(eventTable[tableIndex].flags), 0xff);
     // Now follow the next pointer
-    while (eventTable[tableIndex].flags.continues) {
+    while (eventTable[tableIndex].flags.continued) {
         tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         // the continuation flag of this entry should be set but I'm 
         // not going to check as I wouldn't know what to do if it wasn't set
@@ -390,28 +391,29 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
  * @return 0 if success otherwise the error
  */
 unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
+    EventTableFlags f;
     if (evNum >= EVperEVT) {
         return CMDERR_INV_EV_IDX;
     }
     while (evNum >= EVENT_TABLE_WIDTH) {
         unsigned char nextIdx;
-        EventTableFlags f;
+        
         // skip forward looking for the right chained table entry
         evNum -= EVENT_TABLE_WIDTH;
         f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
         
-        if (f.continues) {
+        if (f.continued) {
             tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
         } else {
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
-                f.asByte = readFlashBlock((WORD)(& eventTable[nextIdx].flags));
+                f.asByte = readFlashBlock((WORD)(& eventTable[nextIdx].flags.asByte));
                 if (f.freeEntry) {
                     unsigned char e;
                      // found a free slot, initialise it
                     setFlashWord((WORD*)&eventTable[nextIdx].event.NN, 0xff); // this field not used
                     setFlashWord((WORD*)&eventTable[nextIdx].event.EN, 0xff); // this field not used
-                    writeFlashByte((BYTE*)&eventTable[nextIdx].flags, 1);    // set continuation flag
+                    writeFlashByte((BYTE*)&eventTable[nextIdx].flags.asByte, 1);    // set continuation flag, clear free and numEV to 0
                     for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
                         writeFlashByte((BYTE*)&eventTable[nextIdx].evs[e], NO_ACTION); // clear the EVs
                     }
@@ -428,6 +430,12 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
     }
     // now write the EV
     writeFlashByte((BYTE*)&eventTable[tableIndex].evs[evNum], evVal);
+    // update the number per row count
+    f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+    if (f.maxEvUsed < evNum) {
+        f.maxEvUsed = evNum;
+        writeFlashByte((BYTE*)&eventTable[tableIndex].flags.asByte, f.asByte);
+    }
     return 0;
 }
  
@@ -435,26 +443,29 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
  * Return an EV value for an event.
  * @param tableIndex the index of the start of an event
  * @param evNum ev number starts at 0 (produced)
- * @return the ev value or -1 if error
+ * @return the ev value or -error code if error
  */
-BYTE getEv(unsigned char tableIndex, unsigned char evNum) {
+int getEv(unsigned char tableIndex, unsigned char evNum) {
+    EventTableFlags f;
     if ( ! validStart(tableIndex)) {
         // not a valid start
-        return NO_ACTION;
+        return -CMDERR_INVALID_EVENT;
     }
     if (evNum >= EVperEVT) {
-        return NO_ACTION;
+        return -CMDERR_INV_EV_IDX;
     }
+    f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
     while (evNum >= EVENT_TABLE_WIDTH) {
         // if evNum is beyond current eventTable entry move to next one
-        EventTableFlags f;
-        f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
-        if (f.continues) {
-            tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
-        } else {
-            // beyond last available EV
-            return NO_ACTION;
+        if (! f.continued) {
+            return -CMDERR_NO_EV;
         }
+        tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
+        f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
+        evNum -= EVENT_TABLE_WIDTH;
+    }
+    if (evNum > f.maxEvUsed) {
+        return -CMDERR_NO_EV;
     }
     // it is within this entry
     return readFlashBlock((WORD)(& eventTable[tableIndex].evs[evNum]));
@@ -677,13 +688,13 @@ void rebuildHashtable(void) {
 #ifdef PRODUCED_EVENTS
             // ev[0] is used to store the Produced event's action
             paction = getEv(tableIndex, 0);
-            if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
+            if ((paction >=0) && (paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
                 action2Event[paction-ACTION_PRODUCER_BASE] = tableIndex;
             }
 #endif
             for (e=1; e<EVENT_TABLE_WIDTH; e++) {
                 CONSUMER_ACTION_T caction = getEv(tableIndex, e);
-                if (caction != NO_ACTION) {
+                if ((caction >= 0) && (caction < NUM_CONSUMER_ACTIONS) && (caction != NO_ACTION)) {
                     // The other EVs are for the consumed events
                     hash = getHash(getNN(tableIndex), getEN(tableIndex));
                 

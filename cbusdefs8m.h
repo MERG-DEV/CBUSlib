@@ -349,7 +349,7 @@ Version history:
 #define CMDERR_NOT_LRN          2
 #define CMDERR_NOT_SETUP        3
 #define CMDERR_TOO_MANY_EVENTS 	4
-// #define CMDERR_NO_EV         5   now reserved
+#define CMDERR_NO_EV         5   //now reserved
 #define CMDERR_INV_EV_IDX       6
 #define CMDERR_INVALID_EVENT	7
 // #define CMDERR_INV_EN_IDX	8	now reserved

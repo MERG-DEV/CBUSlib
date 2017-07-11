@@ -96,13 +96,13 @@ typedef struct {
 //
 //  ACON3/ACOF3  1111
 //
-
-#define NO_ACTION           0
-#define NO_INDEX            0xff
-
 #define     EVENT_SET_MASK  0b10010000
 #define     EVENT_CLR_MASK  0b00000110
 #define     EVENT_ON_MASK   0b00000001
+
+// NO_ACTION is used as the value to fill new events with
+#define NO_ACTION           0
+#define NO_INDEX            0xff
 
 // Function prototypes for event management
 
@@ -114,7 +114,7 @@ extern void eventsInit(void);
 extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 extern void deleteAction(unsigned char action);
 extern BOOL getProducedEvent(unsigned char action);
-extern BYTE getEv(unsigned char tableIndex, unsigned char evNum);
+extern int getEv(unsigned char tableIndex, unsigned char evNum);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 
 extern Event producedEvent;

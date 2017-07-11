@@ -784,14 +784,14 @@ void doReval(void)
         if (validStart(tableIndex)) 
         {
             int evVal = getEv(tableIndex, evNum);
-//            if (evVal >= 0) { // TODO will need to fix this to handle number of EVs used
+            if (evVal >= 0) {
                 cbusMsg[5] = evVal;
                 cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
                 return;
-//            }
-//            cbusMsg[d3] = CMDERR_INV_EV_IDX;
-//            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
-//            return;
+            }
+            cbusMsg[d3] = -evVal;   // a negative value is the error code
+            cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
+            return;
         }
     cbusMsg[d3] = CMDERR_INVALID_EVENT;
     cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
@@ -843,7 +843,7 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
         cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
         return;
     }
-    cbusMsg[d3] = CMDERR_INV_EV_IDX;
+    cbusMsg[d3] = -evVal;   // a negative value is the error code
     cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
 }
 
