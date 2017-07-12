@@ -508,14 +508,18 @@ WORD getEN(unsigned char tableIndex) {
  * @return 
  */
 BOOL parseCbusEvent(BYTE * msg) {
-    BYTE b;
     WORD nodeNumber;
     WORD eventNumber;
     unsigned char tableIndex;
- 
-    nodeNumber = msg[d1];
-    nodeNumber = nodeNumber << 8;
-    nodeNumber |= msg[d2];
+    
+    if (msg[d0] & EVENT_SHORT_MASK) {
+        nodeNumber = 0;
+    } else {
+        nodeNumber = msg[d1];
+        nodeNumber = nodeNumber << 8;
+        nodeNumber |= msg[d2];
+    }
+    
     eventNumber = msg[d3];
     eventNumber = eventNumber << 8;
     eventNumber |= msg[d4];

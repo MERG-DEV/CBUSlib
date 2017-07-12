@@ -87,18 +87,34 @@ typedef struct {
 //    An OFF event opcode also has bit 0 set
 //
 //  eg:
-//  ACON/ACOF  90/91    1001  0000/0001
-//  ASON/ASOF  98/99    1001  1000/1001
+//  ACON  90    1001 0000
+//  ACOF  91    1001 0001
+//  ASON  98    1001 1000
+//  ASOF  99    1001 1001
 //
-//  ACON1/ACOF1  1011
+//  ACON1 B0    1011 0000
+//  ACOF1 B1    1011 0001
+//  ASON1 B8    1011 1000
+//  ASOF1 B9    1011 1001
 //
-//  ACON2/ACOF2  1101
+//  ACON2 D0    1101 0000
+//  ACOF2 D1    1101 0001
+//  ASON2 D8    1101 1000
+//  ASOF2 D9    1101 1001
 //
-//  ACON3/ACOF3  1111
+//  ACON3 F0    1111 0000
+//  ACOF3 F1    1111 0001
+//  ASON3 F8    1111 1000
+//  ASOF3 F9    1111 1001
 //
-#define     EVENT_SET_MASK  0b10010000
-#define     EVENT_CLR_MASK  0b00000110
-#define     EVENT_ON_MASK   0b00000001
+// ON/OFF         determined by d0
+// Long/Short     determined by d3
+// num data bytes determined by d7,d6
+//
+#define     EVENT_SET_MASK   0b10010000
+#define     EVENT_CLR_MASK   0b00000110
+#define     EVENT_ON_MASK    0b00000001
+#define     EVENT_SHORT_MASK 0b00001000
 
 // NO_ACTION is used as the value to fill new events with
 #define NO_ACTION           0
