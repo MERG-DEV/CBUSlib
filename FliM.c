@@ -206,7 +206,7 @@ void FLiMSWCheck( void )
         case fsPressedSetup:   // Button was pressed whilst in setup mode
             if (FLiM_SW) 
             {
-                if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) // button released after debounce time
+                if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME))  // button released after debounce time
                 {
                     flimState = prevFlimState;
                     setStatusLed(flimState == fsFLiM);
@@ -231,10 +231,10 @@ void FLiMSWCheck( void )
                     flimState = prevFlimState;
                     setStatusLed(flimState == fsFLiM);
                 } 
-                else if ((tickTimeSince(switchTime) > NEXT_TEST_TIME)) // button released after time for next test selection
+                else if ((tickTimeSince(switchTime) > NEXT_TEST_TIME))  // button released after time for next test selection
                     flimState = fsNextTest;
                 
-                else if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME)) // button released after debounce time
+                else if ((tickTimeSince(switchTime) > FLiM_DEBOUNCE_TIME))  // button released after debounce time
                     flimState = fsTestInput;    // An input to the current test mode (eg: repeat test)
                 else 
                     flimState = fsTestMode;     // Button not held down long enough to do anything, so just carry on            
@@ -273,6 +273,7 @@ void requestNodeNumber( void )
  * For example when pushbutton pressed long enough whilst in FLiM mode.
  */
 void SLiMRevert(void) 
+
 {   
     // send nn release packet
     cbusSendOpcNN(ALL_CBUS, OPC_NNREL, -1, cbusMsg);
@@ -287,9 +288,11 @@ void SLiMRevert(void)
  * @return true if the message was processed
  */
 BOOL parseCBUSMsg(BYTE *msg)                // Process the incoming message
+
 {
     // check this is an EVENT
-    if (((msg[d0] & EVENT_SET_MASK) == EVENT_SET_MASK) && ((~msg[d0] & EVENT_CLR_MASK)== EVENT_CLR_MASK)) {
+    if (((msg[d0] & EVENT_SET_MASK) == EVENT_SET_MASK) && ((~msg[d0] & EVENT_CLR_MASK)== EVENT_CLR_MASK)) 
+    {
 	// it is an event pass to the module's event processing
         return parseCbusEvent(msg);
     }
@@ -410,9 +413,9 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
 
 #ifdef BOOTLOADER_PRESENT
             case OPC_BOOT:
-                // TODO implement call to bootloader
                 // Enter bootloader mode 
                 ee_write(EE_BOOT_FLAG, 0xFF);
+                Reset();
                 break;
 #endif
                 
@@ -474,6 +477,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
  * Send response bytes to QNN query
  */
 void QNNrespond() 
+
 {
     FLiMprmptr  paramptr;
 
@@ -536,9 +540,12 @@ void doRqnpn(BYTE idx)
 void doNvrd(BYTE NVindex)
 {   
     // check the bounds of NVindex. It starts at 1
-    if ((NVindex == 0) || (NVindex > NV_NUM)) {
+    if ((NVindex == 0) || (NVindex > NV_NUM)) 
+    {
         doError(CMDERR_INV_NV_IDX);
-    } else {
+    } 
+    else 
+    {
         WORD flashIndex;
         flashIndex = AT_NV;
         flashIndex += NVindex;
@@ -560,9 +567,12 @@ void doNvrd(BYTE NVindex)
 void doNvset(BYTE NVindex, BYTE NVvalue)
 {   
     // check the bounds of NVindex. It starts at 1
-    if ((NVindex == 0) || (NVindex > NV_NUM)) {
+    if ((NVindex == 0) || (NVindex > NV_NUM)) 
+    {
         doError(CMDERR_INV_NV_IDX);
-    } else {
+    } 
+    else 
+    {
         WORD flashIndex;
         BYTE oldValue;
 
@@ -572,14 +582,17 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
         flashIndex += NVindex;
 
         oldValue = NvBytePtr[NVindex];
-        if (validateNV(NVindex, oldValue, NVvalue)) {
+        if (validateNV(NVindex, oldValue, NVvalue)) 
+        {
             writeFlashByte((BYTE *)flashIndex, NVvalue);
 #ifdef NV_CACHE
             loadNvCache();
 #endif
             actUponNVchange(NVindex, NVvalue);
             cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
-        } else {
+        } 
+        else 
+        {
             doError(CMDERR_INV_NV_VALUE);
         }
     }
@@ -606,11 +619,8 @@ void doRqnp(void)
         cbusMsg[copyCounter] = paramptr->bytes[copyCounter-d1];
     }
     
-    /* Can't send PARAM 8
-    if (flimState == fsFLiM) {
+    if (flimState == fsFLiM) 
         cbusMsg[d1+PAR_FLAGS-1] |= PF_FLiM;
-     }
-     */
     
     cbusSendMsg(0, cbusMsg);
     
