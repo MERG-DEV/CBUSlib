@@ -627,7 +627,23 @@ BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
     return NULL,
 #endif
 }
+
+/**
+ * Send a produced Event.
+ * @param paction the produced action
+ * @param on indicated whether an ON event or an OFF event should be sent
+ * @return true if the event was sucessfully sent
+ */
+BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
+    if (getProducedEvent(paction)) {
+        return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
+    }
+    // Didn't find a provisioned event so instead send a short event
+    return cbusSendEvent( 0, 0, paction, on );  // short event with action
+}
 #endif
+
+
 
 #ifdef HASH_TABLE
 /**
