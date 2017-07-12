@@ -438,6 +438,9 @@ WORD readCPUType( void ) {
     return devId;
 #else
     WORD id = *(far rom WORD*)0x3FFFFE;
+    // Reset the upper TBLPTR byte. If this isn't done the compiler generated code
+    // to read rom variables gets the wrong values as they are read from the wrong address.
+    TBLPTRU = 0;
     return( id );
 #endif
     
