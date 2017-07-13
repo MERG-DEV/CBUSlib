@@ -771,8 +771,6 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal)
 
 /**
  * Read an event variable by index.
- * TODO check meaning of EN# Again not clear what the CBUS spec actually needs here as the Index is implementation
- * specific.
  */
 void doReval(void) 
 {
@@ -820,7 +818,6 @@ void doEvuln(WORD nodeNumber, WORD eventNumber)
 
 /**
  * Read an event variable by event id.
- * TODO check meaning of EN#
  * @param nodeNumber
  * @param eventNumber
  * @param evNum
