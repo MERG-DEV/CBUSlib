@@ -358,6 +358,11 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
             doReqev((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d5]);
             break;
             
+        case OPC_AREQ:
+            // Illicit a response indicating last event state
+            doAreq((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
+            break;
+            
         default:
             cmdProcessed = FALSE;
             break;

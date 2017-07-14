@@ -147,6 +147,7 @@ void 	doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum);
 void 	doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 void 	doEvlrni(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 void 	doReval(void);
+void    doAreq(WORD nodeNumber, WORD eventNumber);
 
 BYTE    findEvent( WORD eventNode, WORD eventNum);
 BYTE    findEventContinuation(BYTE eventIndex);

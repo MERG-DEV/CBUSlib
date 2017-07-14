@@ -256,6 +256,19 @@ void doRqevn(void) {
     cbusSendOpcMyNN( 0, OPC_NUMEV, cbusMsg );
 } // doRqevn
 
+/**
+ * Indicates a ?request? event using the full event number of 4 bytes. (long event)
+ * A request event is used to elicit a status response from a producer when it is required to
+ * know the ?state? of the producer without producing an ON or OFF event and to trigger an
+ * event from a ?combi? node.
+ * Only accessible in Setup mode.
+ * @param nodeNumber
+ * @param eventNumber
+ */
+void    doAreq(WORD nodeNumber, WORD eventNumber) {
+    // TODO
+}
+
 
 /**
  * Remove event.
