@@ -262,11 +262,38 @@ void doRqevn(void) {
  * know the ?state? of the producer without producing an ON or OFF event and to trigger an
  * event from a ?combi? node.
  * Only accessible in Setup mode.
+ * Does not support default events i.e. those not stored in the event table.
  * @param nodeNumber
  * @param eventNumber
  */
 void    doAreq(WORD nodeNumber, WORD eventNumber) {
-    // TODO
+    PRODUCER_ACTION_T paction;
+    int ev0;
+    
+    unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
+    if (tableIndex == NO_INDEX) return;
+    // found the matching event
+    ev0 = getEv(tableIndex, 0);
+    if (ev0 < 0) {
+        doError(-ev0);
+        return;
+    }
+    paction = ev0;
+    if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
+        unsigned char bit = paction & 0x7;
+        unsigned char byte = paction >> 3;
+        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+byte)) & (1<<bit);
+        cbusMsg[d1] = nodeNumber >> 8;
+        cbusMsg[d2] = nodeNumber & 0xFF;
+        cbusMsg[d3] = eventNumber >> 8;
+        cbusMsg[d4] = eventNumber & 0xFF;
+        if (status) {
+            cbusMsg[d0] = OPC_ARON;    
+        } else {
+            cbusMsg[d0] = OPC_AROF;
+        }
+        cbusSendMsg(ALL_CBUS, cbusMsg);
+    }
 }
 
 
@@ -649,10 +676,21 @@ BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
  * Send a produced Event.
  * @param paction the produced action
  * @param on indicated whether an ON event or an OFF event should be sent
- * @return true if the event was sucessfully sent
+ * @return true if the event was successfully sent
  */
 BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
+    unsigned char bit = paction & 0x7;
+    unsigned char byte = paction >> 3;
+    unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+byte));
+    if (on) {
+        status |= (1<<bit);
+    } else {
+        status &= ~(1<<bit);
+    }
+    ee_write((WORD)(EE_AREQ_STATUS+byte), status);
+    
     if (getProducedEvent(paction)) {
+        
         return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
     }
     // Didn't find a provisioned event so instead send a short event

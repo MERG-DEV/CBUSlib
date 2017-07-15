@@ -65,12 +65,16 @@ EEPROM.h - Definitions for EEPROM usage - part of CBUS libraries for PIC 18F
 #endif
 
 // Top bytes for Bootloader and CBUS library usage - these values are address offsets into EEPROM
+// Library uses top 8 for general storage then next 32 for event status
+// application starts at EE_TOP-40
 
 #define EE_BOOT_FLAG        ((BYTE*)(EE_TOP))       // Set to FF to enter bootloader
 #define EE_CAN_ID           ((BYTE*)(EE_TOP-1))     // 7 bit CANID 1 to 127
 #define EE_NODE_ID          ((WORD*)(EE_TOP-3))     // 16 bit value for node number
 #define EE_FLIM_MODE        ((BYTE*)(EE_TOP-4))     // Enumerated value for SLiM/FLiM mode
-#define EE_VERSION          ((BYTE*)(EE_TOP-5))     // Indicates if EEPROM needs initialising or upgradeing
+#define EE_VERSION          ((BYTE*)(EE_TOP-5))     // Indicates if EEPROM needs initialising or upgrading
+#define EE_AREQ_STATUS      ((BYTE*)(EE_TOP-39))    // Event status bits
+#define EE_APPLICATION      ((BYTE*)(EE_TOP-40))
 
 
 #endif	// __EEPROM_H
