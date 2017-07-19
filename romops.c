@@ -58,6 +58,7 @@
 #include "romops.h"
 #include "EEPROM.h"
 #include "hwsettings.h"
+#include "module.h"
 
 //#pragma romdata BOOTFLAG
 //rom BYTE bootflag = 0;
@@ -126,11 +127,19 @@ void initRomOps()
     EECON1bits.WREN = FALSE;
 #else
     WORD ptr;
+#ifndef CPUF18K
     BYTE fwCounter;
+#endif
     di();     // disable all interrupts
     
     ptr= (WORD)flashbuf;
+    if ((flashblock < MIN_WRITEABLE_FLASH) || (flashblock > MAX_WRITEABLE_FLASH)) {
+        // should never reach here
+        // assert
+        return;
+    }
     TBLPTR=flashblock;
+    TBLPTRU = 0x00; // just to make sure
     FSR0=ptr;
     
 #ifdef CPUF18K
@@ -179,6 +188,7 @@ void  writeFlashWithErase(void)
 {
     // Erase block first
     TBLPTR=flashblock;
+    TBLPTRU = 0x00; // just to make sure
     EECON1bits.EEPGD = 1;   // 1=Program memory, 0=EEPROM
     EECON1bits.CFGS = 0;    // 0=Program memory/EEPROM, 1=ConfigBits
     EECON1bits.WREN = 1;    // enable write to memory
@@ -255,6 +265,7 @@ BYTE readFlashBlock(WORD flashAddr)
         FSR0=ptr;
         flashblock = flashAddr & 0XFFC0;
         TBLPTR=flashblock;
+        TBLPTRU = 0x00; // just to make sure
         EECON1=0X80;
         flashidx=64;
 _asm
