@@ -237,6 +237,36 @@ void doNerd(void) {
     }
 } // doNerd
 
+// Read a single stored event by index
+void doNenrd(unsigned char index) {
+    unsigned char tableIndex;
+    WORD n;
+    
+    tableIndex = evtIdxToTableIndex(index);
+    // check this is a valid index
+    if ( ! validStart(tableIndex)) {
+        doError(CMDERR_INVALID_EVENT);
+            // DEBUG  TODO remove
+        cbusMsg[d7] = readFlashBlock((WORD)(& eventTable[tableIndex].flags.asByte)); 
+        cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+        return;
+    }
+    n = getNN(tableIndex);
+    cbusMsg[d3] = n >> 8;
+    cbusMsg[d4] = n & 0xFF;
+            
+    n = getEN(tableIndex);
+    cbusMsg[d5] = n >> 8;
+    cbusMsg[d6] = n & 0xFF;
+            
+    cbusMsg[d7] = index; 
+    cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+    
+    // DEBUG TODO remove
+    cbusMsg[d7] = readFlashBlock((WORD)(& eventTable[tableIndex].flags.asByte)); 
+    cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+} // doNenrd
+
 /**
  * Read number of stored events
  * This returns the number of events which is different to the number of used slots 

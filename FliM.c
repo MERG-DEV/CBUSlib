@@ -396,6 +396,11 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
                 doNerd();
                 break;
                 
+            case OPC_NENRD:
+                // Read a single stored event by index
+                doNenrd(rx_ptr[d3]);
+                break;
+                
             case OPC_RQEVN:
                 // Read number of stored events
                 doRqevn();

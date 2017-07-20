@@ -140,6 +140,7 @@ extern Event producedEvent;
 void 	doNnclr(void);
 void 	doNnevn(void);
 void 	doNerd(void);
+void    doNenrd(unsigned char tableIndex);
 void 	doRqevn(void);
 void	doEvuln(WORD nodeNumber, WORD eventNumber);
 void 	doReval(void);
