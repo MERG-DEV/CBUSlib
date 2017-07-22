@@ -172,7 +172,7 @@ void eventsInit( void ) {
 #endif
 } //eventsInit
 
-BOOL validStart(BOOL tableIndex) {
+BOOL validStart(unsigned char tableIndex) {
     EventTableFlags f;
     f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags.asByte));
     if (( !f.freeEntry) && ( ! f.continuation)) {
