@@ -239,7 +239,13 @@ void FLiMSWCheck( void )
                 else 
                     flimState = fsTestMode;     // Button not held down long enough to do anything, so just carry on            
             break;
-            
+        /*   
+        case fsFLiMRelease:
+        case fsSetupDone:
+        case fsFLiMLearn:
+        case fsPressedFLiM:
+        case fsNextTest:
+        case fsTestInput:
         default:
             // Should never get here... but just in case
             flimState = fsSLiM;
@@ -247,6 +253,7 @@ void FLiMSWCheck( void )
             setSLiMLed();
             SaveNodeDetails(nodeID, fsSLiM);
             break;
+         */
     } // switch
 
 } // FLiMSWCheck
