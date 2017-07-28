@@ -113,9 +113,10 @@ typedef union
 {
     struct
     {
-        unsigned char maxEvUsed:5;  // How many of the EVs in this row are used. Only valid if continues is clear
+        unsigned char maxEvUsed:4;  // How many of the EVs in this row are used. Only valid if continues is clear
         BOOL    continued:1;    // there is another entry 
         BOOL    continuation:1; // Continuation of previous event entry
+        BOOL    forceOwnNN:1;   // Ignore the specified NN and use module's own NN
         BOOL    freeEntry:1;    // this row in the table is not used - takes priority over other flags
     };
     BYTE    asByte;       // Set to 0xFF for free entry, initially set to zero for entry in use, then producer flag set if required.
@@ -125,7 +126,7 @@ typedef struct {
     EventTableFlags flags;  // put first so could potentially use the Event bytes for EVs in subsequent rows.
     BYTE next;      // index to continuation also indicates if entry is free
     Event event;    // the NN and EN
-    BYTE evs[EVENT_TABLE_WIDTH];    // EVENT_TABLE_WIDTH is maximum of 31 as we have 5 bits of maxEvUsed
+    BYTE evs[EVENT_TABLE_WIDTH];    // EVENT_TABLE_WIDTH is maximum of 15 as we have 4 bits of maxEvUsed
 } EventTable;
 #ifdef __XC8
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
@@ -367,9 +368,10 @@ unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
  * @param eventNumber
  * @param evNum the EV index (starts at 0 for the produced action)
  * @param evVal the EV value
+ * @param forceOwnNN the value of the flag
  * @return error number or 0 for success
  */
-unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal) {
+unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal, BOOL forceOwnNN) {
     unsigned char tableIndex;
     unsigned char error;
     // do we currently have an event
@@ -397,7 +399,11 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
             // found a free slot, initialise it
             setFlashWord((WORD*)&eventTable[tableIndex].event.NN, nodeNumber);
             setFlashWord((WORD*)&eventTable[tableIndex].event.EN, eventNumber);
-            writeFlashByte((BYTE*)&eventTable[tableIndex].flags.asByte, 0);
+            
+            f.asByte = 0;
+            f.forceOwnNN = forceOwnNN;
+            writeFlashByte((BYTE*)&eventTable[tableIndex].flags.asByte, f.asByte);
+            
             for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
                 writeFlashByte((BYTE*)&eventTable[tableIndex].evs[e], NO_ACTION);
             }
@@ -550,7 +556,12 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
 WORD getNN(unsigned char tableIndex) {
     WORD hi;
     WORD lo;
+    EventTableFlags f;
     
+    f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags.asByte));
+    if (f.forceOwnNN) {
+        return nodeID;
+    }
     lo=readFlashBlock((WORD)(& eventTable[tableIndex].event.NN));
     hi = readFlashBlock((WORD)(& eventTable[tableIndex].event.NN)+1);
     return lo | (hi << 8);

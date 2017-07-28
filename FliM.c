@@ -54,8 +54,7 @@ extern void actUponNVchange(BYTE NVindex, BYTE NVvalue);
 extern BYTE evtIdxToTableIndex(BYTE evtIdx);
 extern BYTE tableIndexToEvtIdx(BYTE tableIndex);
 extern BOOL validStart(BYTE tableIndex);
-extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
-extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
+
 extern void clearAllEvents(void);
 
 #ifdef NV_CACHE
@@ -352,7 +351,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
             
         case OPC_EVLRN:
             // Teach event whilst in learn mode
-            doEvlrn( (rx_ptr[d1] << 8) + rx_ptr[d2] , (rx_ptr[d3] << 8) + rx_ptr[d4], rx_ptr[d5], rx_ptr[d6]);
+            doEvlrn( (((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d5], rx_ptr[d6]);
             break;
             
         case OPC_EVLRNI:
@@ -774,7 +773,7 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal)
         return;
     }
     evNum--;    // convert CBUS numbering (starts at 1) to internal numbering)
-    error = addEvent(nodeNumber, eventNumber, evNum, evVal);
+    error = addEvent(nodeNumber, eventNumber, evNum, evVal, FALSE);
     if (error) 
     {
         // failed to write
