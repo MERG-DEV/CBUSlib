@@ -288,10 +288,10 @@ void doRqevn(void) {
 } // doRqevn
 
 /**
- * Indicates a ?request? event using the full event number of 4 bytes. (long event)
+ * Indicates a "request" event using the full event number of 4 bytes. (long event)
  * A request event is used to elicit a status response from a producer when it is required to
  * know the ?state? of the producer without producing an ON or OFF event and to trigger an
- * event from a ?combi? node.
+ * event from a "combi" node.
  * Only accessible in Setup mode.
  * Does not support default events i.e. those not stored in the event table.
  * @param nodeNumber
@@ -304,7 +304,7 @@ void    doAreq(WORD nodeNumber, WORD eventNumber) {
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
     if (tableIndex == NO_INDEX) return;
     // found the matching event
-    ev0 = getEv(tableIndex, 0);
+    ev0 = getEv(tableIndex, 0); // get the producer action
     if (ev0 < 0) {
         doError(-ev0);
         return;
@@ -734,8 +734,13 @@ BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
         
         return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
     }
-    // Didn't find a provisioned event so instead send a short event
-    return cbusSendEvent( 0, 0, paction, on );  // short event with action
+    // Didn't find a provisioned event so instead send a debug message containing the action
+    cbusMsg[d3] = paction & 0xFF;
+    cbusMsg[d4] = paction >> 8;
+    cbusMsg[d5] = on;
+    cbusMsg[d6] = status;
+    cbusMsg[d7] = 0;
+    return cbusSendOpcNN(ALL_CBUS, OPC_ACDAT, -1, cbusMsg);
 }
 #endif
 
@@ -778,6 +783,7 @@ void rebuildHashtable(void) {
     unsigned char hash;
     unsigned char chainIdx;
     unsigned char tableIndex;
+    int a;
 #ifdef PRODUCED_EVENTS
     // first initialise to nothing
     PRODUCER_ACTION_T paction;
@@ -799,9 +805,12 @@ void rebuildHashtable(void) {
             // found the start of an event definition
 #ifdef PRODUCED_EVENTS
             // ev[0] is used to store the Produced event's action
-            paction = getEv(tableIndex, 0);
-            if ((paction >=0) && (paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
-                action2Event[paction-ACTION_PRODUCER_BASE] = tableIndex;
+            a = getEv(tableIndex, 0);
+            if (a >= 0) {
+                paction = a;
+                if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
+                    action2Event[paction-ACTION_PRODUCER_BASE] = tableIndex;
+                }
             }
 #endif
             for (e=1; e<EVENT_TABLE_WIDTH; e++) {

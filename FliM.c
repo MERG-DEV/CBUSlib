@@ -424,7 +424,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
                 
             case OPC_REVAL:
                 // Read event variable by index
-                doReval();
+                doReval(rx_ptr[d3], rx_ptr[d4]);
                 break;
 
 #ifdef BOOTLOADER_PRESENT
@@ -788,12 +788,12 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal)
 /**
  * Read an event variable by index.
  */
-void doReval(void) 
+void doReval(BYTE enNum, BYTE evNum) 
 {
 	// Get event index and event variable number from message
 	// Send response with EV value
-    unsigned char tableIndex = evtIdxToTableIndex(cbusMsg[d3]);
-    unsigned char evNum = cbusMsg[d4];
+    BYTE evIndex;
+    BYTE tableIndex = evtIdxToTableIndex(enNum);
     
     if ((evNum == 0) || (evNum > EVperEVT)) 
     {
@@ -801,15 +801,17 @@ void doReval(void)
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
     }
-    evNum--;    // Convert from CBUS numbering (starts at 1 for produced action))
+    evIndex = evNum-1;    // Convert from CBUS numbering (starts at 1 for produced action))
     
     // check it is a valid index
     if (tableIndex < NUM_EVENTS) 
         if (validStart(tableIndex)) 
         {
-            int evVal = getEv(tableIndex, evNum);
+            int evVal = getEv(tableIndex, evIndex);
             if (evVal >= 0) {
-                cbusMsg[5] = evVal;
+                cbusMsg[d3] = enNum;
+                cbusMsg[d4] = evNum;
+                cbusMsg[d5] = evVal;
                 cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
                 return;
             }
