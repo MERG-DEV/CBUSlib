@@ -86,8 +86,8 @@ extern const NodeVarTable nodeVarTable @AT_NV ;
 const BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //EventTableEntry     *EVTPtr;      // Event table in ROM
 #else
-extern volatile rom NodeVarTable nodeVarTable;
-volatile rom near BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in ROM as bytes
+//extern volatile rom NodeVarTable nodeVarTable;
+volatile rom near BYTE * NvBytePtr = (rom near BYTE*)AT_NV; //nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //rom EventTableEntry     *EVTPtr;    // Event table in ROM
    
 #pragma code APP

@@ -133,6 +133,7 @@ void initRomOps()
     di();     // disable all interrupts
     
     ptr= (WORD)flashbuf;
+    // check we are only writing within the persistent data area
     if ((flashblock < MIN_WRITEABLE_FLASH) || (flashblock > MAX_WRITEABLE_FLASH)) {
         // should never reach here
         // assert
@@ -235,6 +236,12 @@ void  writeFlashWithErase(void)
 BYTE readFlashBlock(WORD flashAddr) 
 {
     WORD ptr;
+    // check we are only reading within the persistent data area
+    if ((flashAddr < MIN_WRITEABLE_FLASH) || (flashAddr > MAX_WRITEABLE_FLASH)) {
+        // should never reach here
+        // assert
+        return 0xff;
+    }
 
     if(flashFlags.valid !=5) 
     {
@@ -293,6 +300,12 @@ _endasm
 void writeFlashImage(BYTE * addr, BYTE data) 
 {
     unsigned char *offset;
+    // check we are only writing within the persistent data area
+    if (((WORD)addr < MIN_WRITEABLE_FLASH) || ((WORD)addr > MAX_WRITEABLE_FLASH)) {
+        // should never reach here
+        // assert
+        return;
+    }
 
     if(flashFlags.valid !=5) 
     {
