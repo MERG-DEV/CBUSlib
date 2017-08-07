@@ -90,7 +90,7 @@ const BYTE * NvBytePtr = nodeVarTable.nodevars;            // Node variables in 
 volatile rom near BYTE * NvBytePtr = (rom near BYTE*)AT_NV; //nodeVarTable.nodevars;            // Node variables in ROM as bytes
 //rom EventTableEntry     *EVTPtr;    // Event table in ROM
    
-#pragma code APP
+//#pragma code APP
 #pragma udata
 #endif
 

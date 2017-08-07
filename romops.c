@@ -73,7 +73,7 @@ BYTE        flashidx;
 WORD        flashblock;     //address of current 64 byte flash block
 
 #ifndef __XC8__
-#pragma code APP
+//#pragma code APP
 #endif
 
 // Internal function definitions

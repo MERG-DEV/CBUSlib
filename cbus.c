@@ -59,7 +59,7 @@
 WORD    nodeID;
 BYTE    cbusMsg[pktsize]; // Global buffer for fast access to CBUS packets - do NOT use in ISRs as would not be re-entrant
 #ifndef __XC8__
-#pragma code APP
+//#pragma code APP
 #endif
 
 

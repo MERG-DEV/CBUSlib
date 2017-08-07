@@ -86,6 +86,10 @@
 #ifdef __18F25K80
 #include    P18F25k80.inc
 #endif
+    
+#ifdef __18F26K80
+#include    P18F26k80.inc
+#endif
 
 #ifdef __18F2480
 #include    P18F2480.inc
