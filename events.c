@@ -552,6 +552,38 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
 }
 
 /**
+ * Return all the EV values for an event. EVs are put into the global evs array.
+ * @param tableIndex the index of the start of an event
+ * @return the error code or 0 for no error
+ */
+BYTE evs[EVperEVT];
+BYTE getEVs(unsigned char tableIndex) {
+    EventTableFlags f;
+    unsigned char evNum;
+    
+    if ( ! validStart(tableIndex)) {
+        // not a valid start
+        return CMDERR_INVALID_EVENT;
+    }
+    for (evNum=0; evNum < EVperEVT; ) {
+        unsigned char evIdx;
+        for (evIdx=0; evIdx < EVENT_TABLE_WIDTH; evIdx++) {
+            evs[evNum] = readFlashBlock((WORD)(&(eventTable[tableIndex].evs[evIdx])));
+            evNum++;
+        }
+        f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
+        if (! f.continued) {
+            for (; evNum < EVperEVT; evNum++) {
+                evs[evNum] = NO_ACTION;
+            }
+            return 0;
+        }
+        tableIndex = readFlashBlock((WORD)(&(eventTable[tableIndex].next)));
+    }
+    return 0;
+}
+
+/**
  * Return the NN for an event.
  * Getter so that the application code can obtain information about the event.
  * @param tableIndex the index of the start of an event

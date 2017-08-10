@@ -133,11 +133,13 @@ extern void deleteAction(unsigned char action);
 extern BOOL getProducedEvent(PRODUCER_ACTION_T action);
 extern BOOL getDefaultProducedEvent(PRODUCER_ACTION_T paction);
 extern int getEv(unsigned char tableIndex, unsigned char evNum);
+extern BYTE getEVs(unsigned char tableIndex);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal, BOOL forceOwnNN);
 extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
 
 
 extern Event producedEvent;
+extern BYTE evs[EVperEVT];
 
 // Internal functions
 
