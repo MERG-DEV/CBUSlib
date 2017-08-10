@@ -430,7 +430,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
 #ifdef BOOTLOADER_PRESENT
             case OPC_BOOT:
                 // Enter bootloader mode 
-                ee_write(EE_BOOT_FLAG, 0xFF);
+                ee_write((WORD)EE_BOOT_FLAG, 0xFF);
                 Reset();
                 break;
 #endif

@@ -2,6 +2,7 @@
 #define __EVENTS_H
 
 #include "FliM.h"
+#include "module.h"
 /*
 
  Copyright (C) Pete Brownlow 2014-2017   software@upsys.co.uk
@@ -129,10 +130,12 @@ extern void clearChainTable(void);
 extern void eventsInit(void);
 extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 extern void deleteAction(unsigned char action);
-extern BOOL getProducedEvent(unsigned char action);
+extern BOOL getProducedEvent(PRODUCER_ACTION_T action);
+extern BOOL getDefaultProducedEvent(PRODUCER_ACTION_T paction);
 extern int getEv(unsigned char tableIndex, unsigned char evNum);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal, BOOL forceOwnNN);
 extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
+
 
 extern Event producedEvent;
 

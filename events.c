@@ -735,7 +735,11 @@ BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
     ee_write((WORD)(EE_AREQ_STATUS+byte), status);
     
     if (getProducedEvent(paction)) {
-        
+        return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
+    }
+    // Didn't find a provisioned event so now check for programmed default events
+    // The default events are application specific so call back into application space
+    if (getDefaultProducedEvent(paction)) {
         return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
     }
     // Didn't find a provisioned event so instead send a debug message containing the action
