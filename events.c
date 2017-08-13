@@ -109,25 +109,6 @@ extern void processEvent(unsigned char action, BYTE * msg);
 //
 // define HASH_TABLE to use event hash tables for fast access - at the expense of some RAM
 
-typedef union
-{
-    struct
-    {
-        unsigned char maxEvUsed:4;  // How many of the EVs in this row are used. Only valid if continues is clear
-        BOOL    continued:1;    // there is another entry 
-        BOOL    continuation:1; // Continuation of previous event entry
-        BOOL    forceOwnNN:1;   // Ignore the specified NN and use module's own NN
-        BOOL    freeEntry:1;    // this row in the table is not used - takes priority over other flags
-    };
-    BYTE    asByte;       // Set to 0xFF for free entry, initially set to zero for entry in use, then producer flag set if required.
-} EventTableFlags;
-
-typedef struct {
-    EventTableFlags flags;          // put first so could potentially use the Event bytes for EVs in subsequent rows.
-    BYTE next;                      // index to continuation also indicates if entry is free
-    Event event;                    // the NN and EN
-    BYTE evs[EVENT_TABLE_WIDTH];    // EVENT_TABLE_WIDTH is maximum of 15 as we have 4 bits of maxEvUsed
-} EventTable;
 #ifdef __XC8
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 #else
