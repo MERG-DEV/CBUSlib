@@ -151,6 +151,7 @@ extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 extern void deleteAction(unsigned char action);
 extern BOOL getProducedEvent(PRODUCER_ACTION_T action);
 extern BOOL getDefaultProducedEvent(PRODUCER_ACTION_T paction);
+extern BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on);
 extern int getEv(unsigned char tableIndex, unsigned char evNum);
 extern BYTE getEVs(unsigned char tableIndex);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal, BOOL forceOwnNN);

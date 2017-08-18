@@ -84,27 +84,27 @@
 #endif
 
 #ifdef __18F25K80
-#include    P18F25k80.inc
+#include    P18F25K80.INC
 #endif
     
 #ifdef __18F26K80
-#include    P18F26k80.inc
+#include    P18F26K80.INC
 #endif
 
 #ifdef __18F2480
-#include    P18F2480.inc
+#include    P18F2480.INC
 #endif
     
 #ifdef __18F2580
-#include    P18F2580.inc
+#include    P18F2580.INC
 #endif
     
 #ifdef __18F2585
-#include    P18F2585.inc
+#include    P18F2585.INC
 #endif    
 
 #ifdef __18F2680
-#include    P18F2680.inc
+#include    P18F2680.INC
 #endif    
     
     
