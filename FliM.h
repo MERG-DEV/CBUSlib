@@ -61,7 +61,7 @@
 #include "events.h"
 #include "module.h"
 
-#define DEFAULT_NN 	0xDEAD
+#define DEFAULT_NN 	0x00    // Virgin modules should start with NN of 0
 
 #define FLiM_DEBOUNCE_TIME HUNDRED_MILI_SECOND
 #define FLiM_HOLD_TIME  4 * ONE_SECOND

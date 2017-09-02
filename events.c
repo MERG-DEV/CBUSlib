@@ -200,7 +200,6 @@ void doNnevn(void) {
 
 // Read all stored events
 void doNerd(void) {
-	//TODO send response OPC_ENRSP (presumably once for each event and EV?  Study FCU interaction with existing modules)
     unsigned char tableIndex;
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
         // if its not free and not a continuation then it is start of an event
@@ -361,50 +360,48 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
     unsigned char error;
     // do we currently have an event
     tableIndex = findEvent(nodeNumber, eventNumber);
-    if (tableIndex != NO_INDEX) {
-        // found the event
-        error = writeEv(tableIndex, evNum, evVal);
+    if (tableIndex == NO_INDEX) {
+        error = 1;
+        // didn't find the event so find an empty slot and create one
+        for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
+            EventTableFlags f;
+            f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
+            if (f.freeEntry) {
+                unsigned char e;
+                // found a free slot, initialise it
+                setFlashWord((WORD*)&(eventTable[tableIndex].event.NN), nodeNumber);
+                setFlashWord((WORD*)&(eventTable[tableIndex].event.EN), eventNumber);
+            
+                f.asByte = 0;
+                f.forceOwnNN = forceOwnNN;
+                writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
+            
+                for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
+                    writeFlashByte((BYTE*)&(eventTable[tableIndex].evs[e]), NO_ACTION);
+                }
+                flushFlashImage();
+#ifdef HASH_TABLE
+                rebuildHashtable();
+#endif
+                error = 0;
+                break;
+            }
+        }
         if (error) {
-            // failed to write
-            return CMDERR_INV_EV_IDX;
-        }
-        // success
-        flushFlashImage();
-#ifdef HASH_TABLE
-        rebuildHashtable();
-#endif
-        return 0;
-    }
-    // event start not found so find an empty slot and create one
-    for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
-        EventTableFlags f;
-        f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-        if (f.freeEntry) {
-            unsigned char e;
-            // found a free slot, initialise it
-            setFlashWord((WORD*)&(eventTable[tableIndex].event.NN), nodeNumber);
-            setFlashWord((WORD*)&(eventTable[tableIndex].event.EN), eventNumber);
-            
-            f.asByte = 0;
-            f.forceOwnNN = forceOwnNN;
-            writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
-            
-            for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
-                writeFlashByte((BYTE*)&(eventTable[tableIndex].evs[e]), NO_ACTION);
-            }
-            error = writeEv(tableIndex, evNum, evVal);
-            if (error) {
-                // failed to write
-                return CMDERR_INV_EV_IDX;
-            }
-            // success
-            flushFlashImage();
-#ifdef HASH_TABLE
-            rebuildHashtable();
-#endif
-            return 0;
+            return CMDERR_TOO_MANY_EVENTS;
         }
     }
+ 
+    if (writeEv(tableIndex, evNum, evVal)) {
+        // failed to write
+        return CMDERR_INV_EV_IDX;
+    }
+    // success
+    flushFlashImage();
+#ifdef HASH_TABLE
+    rebuildHashtable();
+#endif
+    return 0;
 }
 
 /**
@@ -834,19 +831,12 @@ void rebuildHashtable(void) {
                 }
             }
 #endif
-            for (e=1; e<EVENT_TABLE_WIDTH; e++) {
-                CONSUMER_ACTION_T caction = getEv(tableIndex, e);
-                if ((caction >= 0) && (caction < NUM_CONSUMER_ACTIONS) && (caction != NO_ACTION)) {
-                    // The other EVs are for the consumed events
-                    hash = getHash(getNN(tableIndex), getEN(tableIndex));
+            hash = getHash(getNN(tableIndex), getEN(tableIndex));
                 
-                    for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
-                        if (eventChains[hash][chainIdx] == NO_INDEX) {
-                            // available
-                            eventChains[hash][chainIdx] = tableIndex;
-                            break;
-                        }
-                    }
+            for (chainIdx=0; chainIdx<CHAIN_LENGTH; chainIdx++) {
+                if (eventChains[hash][chainIdx] == NO_INDEX) {
+                    // available
+                    eventChains[hash][chainIdx] = tableIndex;
                     break;
                 }
             }
