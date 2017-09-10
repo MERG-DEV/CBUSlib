@@ -465,13 +465,14 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
         } else {
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
-                f.asByte = readFlashBlock((WORD)(&(eventTable[nextIdx].flags.asByte)));
-                if (f.freeEntry) {
+                EventTableFlags nextF;
+                nextF.asByte = readFlashBlock((WORD)(&(eventTable[nextIdx].flags.asByte)));
+                if (nextF.freeEntry) {
                     unsigned char e;
                      // found a free slot, initialise it
-                    setFlashWord((WORD*)&(eventTable[nextIdx].event.NN), 0xff); // this field not used
-                    setFlashWord((WORD*)&(eventTable[nextIdx].event.EN), 0xff); // this field not used
-                    writeFlashByte((BYTE*)&(eventTable[nextIdx].flags.asByte), 1);    // set continuation flag, clear free and numEV to 0
+                    setFlashWord((WORD*)&(eventTable[nextIdx].event.NN), 0xffff); // this field not used
+                    setFlashWord((WORD*)&(eventTable[nextIdx].event.EN), 0xffff); // this field not used
+                    writeFlashByte((BYTE*)&(eventTable[nextIdx].flags.asByte), 0x20);    // set continuation flag, clear free and numEV to 0
                     for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
                         writeFlashByte((BYTE*)&(eventTable[nextIdx].evs[e]), NO_ACTION); // clear the EVs
                     }
