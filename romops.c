@@ -447,7 +447,7 @@ WORD ee_read_short(WORD addr)
  */
 void ee_write_short(WORD addr, WORD data) {
 	WORD ee_addr = addr;
-	ee_write(ee_addr++, (BYTE)data);
+	ee_write(ee_addr++, (BYTE)(data&0xFF));
 	ee_write(ee_addr, (BYTE)(data>>8));
 }
 

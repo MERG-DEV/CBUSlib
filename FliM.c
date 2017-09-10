@@ -341,7 +341,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
             
         case OPC_NNCLR:
             // Clear all events
-            doNnclr;
+            doNnclr();
             break;
             
         case OPC_EVULN:

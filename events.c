@@ -477,6 +477,10 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
                     }
                     // set the next of the previous in chain
                     writeFlashByte((BYTE*)&(eventTable[tableIndex].next), nextIdx);
+                    // set the continued flag
+                    f.continued = 1;
+                    writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
+                    tableIndex = nextIdx;
                     break;
                 }
             }
