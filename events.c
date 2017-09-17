@@ -714,7 +714,7 @@ Event producedEvent;
 BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
     if ((paction < ACTION_PRODUCER_BASE) || (paction >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
-    if (action2Event[paction-ACTION_PRODUCER_BASE] == NO_ACTION) return FALSE;
+    if (action2Event[paction-ACTION_PRODUCER_BASE] == NO_INDEX) return FALSE;
     producedEvent.NN = getNN(action2Event[paction-ACTION_PRODUCER_BASE]);
     producedEvent.EN = getEN(action2Event[paction-ACTION_PRODUCER_BASE]);
     return TRUE;
@@ -811,7 +811,7 @@ void rebuildHashtable(void) {
     // first initialise to nothing
     PRODUCER_ACTION_T paction;
     for (paction=0; paction<NUM_PRODUCER_ACTIONS; paction++) {
-        action2Event[paction] = NO_ACTION;
+        action2Event[paction] = NO_INDEX;
     }
 #endif
     for (hash=0; hash<HASH_LENGTH; hash++) {
