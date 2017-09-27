@@ -394,33 +394,36 @@ BYTE ee_read(WORD addr) {
 
 /**
  * Write one byte to data EEPROM.
+ * We verify at end and try again if necessary.
  * @param addr the address to be written
  * @param data the data to be written
  */
 void ee_write(WORD addr, BYTE data) {
-    SET_EADDRH(addr >> 8);      // High byte of address to write
-    EEADR = addr & 0xFF;       	/* Low byte of Data Memory Address to write */
-    EEDATA = data;
-    EECON1bits.EEPGD = 0;       /* Point to DATA memory */
-    EECON1bits.CFGS = 0;        /* Access program FLASH/Data EEPROM memory */
-    EECON1bits.WREN = 1;        /* Enable writes */
-    di();         /* Disable Interrupts */
-    EECON2 = 0x55;
-    EECON2 = 0xAA;
-    EECON1bits.WR = 1;
+    do {
+        SET_EADDRH(addr >> 8);      // High byte of address to write
+        EEADR = addr & 0xFF;       	/* Low byte of Data Memory Address to write */
+        EEDATA = data;
+        EECON1bits.EEPGD = 0;       /* Point to DATA memory */
+        EECON1bits.CFGS = 0;        /* Access program FLASH/Data EEPROM memory */
+        EECON1bits.WREN = 1;        /* Enable writes */
+        di();         /* Disable Interrupts */
+        EECON2 = 0x55;
+        EECON2 = 0xAA;
+        EECON1bits.WR = 1;
 #ifdef __XC8__
-    while (EECON1bits.WR)
-        ;
-    //asm("BTFSC EECON1, 1");                 // should wait until WR clears
+        while (EECON1bits.WR)
+            ;
+        //asm("BTFSC EECON1, 1");                 // should wait until WR clears
 #else
-    _asm nop
+        _asm nop
          nop _endasm
 #endif
-    ei();         /* Enable Interrupts */
-    while (!EEIF)
-        ;
-    EEIF = 0;
-    EECON1bits.WREN = 0;		/* Disable writes */
+        ei();         /* Enable Interrupts */
+        while (!EEIF)
+            ;
+        EEIF = 0;
+        EECON1bits.WREN = 0;		/* Disable writes */
+    } while (ee_read(addr) != data);
 }
 
 /**

@@ -84,7 +84,7 @@ typedef union
 {
     struct
     {
-        unsigned char maxEvUsed:4;  // How many of the EVs in this row are used. Only valid if continues is clear
+        unsigned char maxEvUsedPlusOne:4;  // How many of the EVs in this row are used. Only valid if continues is clear
         BOOL    continued:1;    // there is another entry 
         BOOL    continuation:1; // Continuation of previous event entry
         BOOL    forceOwnNN:1;   // Ignore the specified NN and use module's own NN
@@ -148,7 +148,8 @@ extern void clearAction2Event(void);
 extern void clearChainTable(void);
 extern void eventsInit(void);
 extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
-extern void deleteAction(unsigned char action);
+extern void deleteConsumerActionRange(CONSUMER_ACTION_T action, unsigned char number);
+extern void deleteProducerActionRange(PRODUCER_ACTION_T action, unsigned char number);
 extern BOOL getProducedEvent(PRODUCER_ACTION_T action);
 extern BOOL getDefaultProducedEvent(PRODUCER_ACTION_T paction);
 extern BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on);

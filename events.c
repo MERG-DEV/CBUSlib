@@ -73,6 +73,8 @@ void rebuildHashtable(void);
 unsigned char getHash(WORD nn, WORD en);
 BYTE tableIndexToEvtIdx(BYTE tableIndex);
 BYTE evtIdxToTableIndex(BYTE evtIdx);
+void checkRemoveTableEntry(unsigned char tableIndex);
+unsigned char removeTableEntry(unsigned char tableIndex);
 unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal);
 WORD getNN(unsigned char tableIndex);
 WORD getEN(unsigned char tableIndex);
@@ -157,6 +159,7 @@ void eventsInit( void ) {
 
 BOOL validStart(unsigned char tableIndex) {
     EventTableFlags f;
+    if (tableIndex >= NUM_EVENTS) return FALSE;
     f.asByte = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte)));
     if (( !f.freeEntry) && ( ! f.continuation)) {
         return TRUE;
@@ -316,30 +319,41 @@ void    doAreq(WORD nodeNumber, WORD eventNumber) {
  * @return error or 0 for success
  */
 unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
-    EventTableFlags f;
     // need to delete this action from the Event table. 
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
     if (tableIndex == NO_INDEX) return CMDERR_INV_EV_IDX; // not found
     // found the event to delete
-    // set the free flag
-    writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xff);
-    // Now follow the next pointer
-    f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-    while (f.continued) {
-        tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
-        // the continuation flag of this entry should be set but I'm 
-        // not going to check as I wouldn't know what to do if it wasn't set
-                    
+    return removeTableEntry(tableIndex);
+}
+
+unsigned char removeTableEntry(unsigned char tableIndex) {
+    EventTableFlags f;
+    
+    if (tableIndex >= NUM_EVENTS) return CMDERR_INV_EV_IDX;
+    if (validStart(tableIndex)) {
         // set the free flag
         writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xff);
+        // Now follow the next pointer
         f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-    }
+        while (f.continued) {
+            tableIndex = readFlashBlock((WORD)(& eventTable[tableIndex].next));
+            f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
+        
+            if (tableIndex >= NUM_EVENTS) return CMDERR_INV_EV_IDX; // shouldn't be necessary
+        
+            // the continuation flag of this entry should be set but I'm 
+            // not going to check as I wouldn't know what to do if it wasn't set
+                    
+            // set the free flag
+            writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xff);
+        
+        }
+        flushFlashImage();
 #ifdef HASH_TABLE
-    // easier to rebuild from scratch
-    rebuildHashtable();
+        // easier to rebuild from scratch
+        rebuildHashtable();
 #endif
-    flushFlashImage();
-
+    }
     return 0;
 }
 /**
@@ -450,6 +464,7 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
  */
 unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
     EventTableFlags f;
+    unsigned char startIndex = tableIndex;
     if (evNum >= EVperEVT) {
         return CMDERR_INV_EV_IDX;
     }
@@ -462,6 +477,9 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
         
         if (f.continued) {
             tableIndex = readFlashBlock((WORD)(&(eventTable[tableIndex].next)));
+            if (tableIndex == NO_INDEX) {
+                return CMDERR_INVALID_EVENT;
+            }
         } else {
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
@@ -495,9 +513,13 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
     writeFlashByte((BYTE*)&(eventTable[tableIndex].evs[evNum]), evVal);
     // update the number per row count
     f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-    if (f.maxEvUsed < evNum) {
-        f.maxEvUsed = evNum;
+    if (f.maxEvUsedPlusOne <= evNum) {
+        f.maxEvUsedPlusOne = evNum+1;
         writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
+    }
+    // If we are deleting then see if we can remove all
+    if (evVal == NO_ACTION) {
+        checkRemoveTableEntry(startIndex);
     }
     return 0;
 }
@@ -524,10 +546,13 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
             return -CMDERR_NO_EV;
         }
         tableIndex = readFlashBlock((WORD)(&(eventTable[tableIndex].next)));
+        if (tableIndex == NO_INDEX) {
+            return -CMDERR_INVALID_EVENT;
+        }
         f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
         evNum -= EVENT_TABLE_WIDTH;
     }
-    if (evNum > f.maxEvUsed) {
+    if (evNum+1 > f.maxEvUsedPlusOne) {
         return -CMDERR_NO_EV;
     }
     // it is within this entry
@@ -562,6 +587,9 @@ BYTE getEVs(unsigned char tableIndex) {
             return 0;
         }
         tableIndex = readFlashBlock((WORD)(&(eventTable[tableIndex].next)));
+        if (tableIndex == NO_INDEX) {
+            return CMDERR_INVALID_EVENT;
+        }
     }
     return 0;
 }
@@ -661,43 +689,77 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
 }
 
 /**
- * Delete all occurrences of the action.
+ * Delete all occurrences of the consumer action.
  * @param action
  */
-void deleteAction(unsigned char action) {
-    if (action != NO_ACTION) {
-        unsigned char tableIndex;
-        for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-            EventTableFlags f;
-            f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-            if ( ! f.freeEntry) {
-                unsigned char e;
-                for (e=0; e<EVENT_TABLE_WIDTH; e++) {
-                    if (readFlashBlock((WORD)(&(eventTable[tableIndex].evs[e]))) == action) {
-                        writeEv(tableIndex, e, NO_ACTION);
-                    }
+void deleteConsumerActionRange(CONSUMER_ACTION_T action, unsigned char number) {
+    unsigned char tableIndex;
+    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+        if (validStart(tableIndex)) {
+            BOOL updated = FALSE;
+            unsigned char e;
+            if (getEVs(tableIndex)) {
+                return;
+            }
+                
+            for (e=1; e<EVperEVT; e++) {
+                if ((evs[e] >= action) && (evs[e] < action+number)) {
+                    writeEv(tableIndex, e, NO_ACTION);
+                    updated = TRUE;
                 }
             }
-        }
-        // now check to see if any events can be removed
-        for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-            BOOL remove = TRUE;
-            if ( validStart(tableIndex)) {
-                unsigned char e;
-                for (e=0; e<EVENT_TABLE_WIDTH; e++) {
-                    if (readFlashBlock((WORD)(&(eventTable[tableIndex].evs[e]))) != NO_ACTION) {
-                        remove = FALSE;
-                        break;
-                    }
-                }
-            }
-            if (remove) {
-                writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xFF);
+            if (updated) {
+                checkRemoveTableEntry(tableIndex);
             }
         }
+    }
+    flushFlashImage();
 #ifdef HASH_TABLE
-        rebuildHashtable();                
+    rebuildHashtable();                
 #endif
+}
+
+/**
+ * Delete all occurrences of the producer action.
+ * @param action
+ */
+void deleteProducerActionRange(PRODUCER_ACTION_T action, unsigned char number) {
+    unsigned char tableIndex;
+    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+        if ( validStart(tableIndex)) {
+            EventTableFlags f;
+            unsigned char pa;
+            f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
+            pa = readFlashBlock((WORD)(&(eventTable[tableIndex].evs[0])));
+            if ((pa >= action) && (pa < action+number)) {
+                writeEv(tableIndex, 0, NO_ACTION);
+                checkRemoveTableEntry(tableIndex);
+            }                
+        }
+    }
+    flushFlashImage();
+#ifdef HASH_TABLE
+    rebuildHashtable();                
+#endif
+}
+
+/**
+ * Check to see if any event entries can be removed.
+ * @param tableIndex
+ */
+void checkRemoveTableEntry(unsigned char tableIndex) {
+    unsigned char e;
+    
+    if ( validStart(tableIndex)) {
+        if (getEVs(tableIndex)) {
+            return;
+        }
+        for (e=0; e<EVperEVT; e++) {
+            if (evs[e] != NO_ACTION) {
+                return;
+            }
+        }
+        removeTableEntry(tableIndex);
     }
 }
 
