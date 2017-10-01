@@ -733,9 +733,8 @@ BOOL thisNN( BYTE *rx_ptr)
  * @param flimState the current state
  */
 void SaveNodeDetails(WORD nodeID, enum FLiMStates flimState)
-{ WORD tnn;
+{
     ee_write_short((WORD)EE_NODE_ID, nodeID);
-    tnn = ee_read_short((WORD)EE_NODE_ID);
     ee_write((WORD)EE_FLIM_MODE, flimState);
 } // SaveNodeDetails
 
