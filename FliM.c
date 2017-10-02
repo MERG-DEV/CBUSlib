@@ -142,7 +142,8 @@ void FLiMSWCheck( void )
                 cbusMsg[d1] = (nodeID >>8)&0xff;
                 cbusMsg[d2] = nodeID & 0xff;
                     // This isn't part of the CBUS spec but it is very useful
-                    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );     
+                // have to disable this as it seems that FCU can't cope when NN is zero
+//                    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );     
                 switchTime.Val = tickGet();
             }
             break;
