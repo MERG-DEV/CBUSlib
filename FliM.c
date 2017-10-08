@@ -48,6 +48,7 @@
 #include "events.h"
 #include "romops.h"
 #include "cbus.h"
+#include "can18.h"
 
 extern BOOL validateNV(BYTE NVindex, BYTE oldValue, BYTE newValue);
 extern void actUponNVchange(BYTE NVindex, BYTE NVvalue);
@@ -435,6 +436,14 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
                 Reset();
                 break;
 #endif
+                            
+            case OPC_CANID:
+                setNewCanId(rx_ptr[d3]);
+                break;
+            
+            case OPC_ENUM:
+                doEnum();
+                break;
                 
             default:
                 cmdProcessed = FALSE;

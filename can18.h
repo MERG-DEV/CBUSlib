@@ -162,6 +162,7 @@ void checkTxFifo( void );
 void checkCANTimeout( void );
 void canTxError( void );
 void canInterruptHandler( void );
+void doEnum(void);
 
 #endif
 

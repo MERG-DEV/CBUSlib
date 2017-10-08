@@ -303,19 +303,22 @@ void canInit(BYTE busNum, BYTE initCanID) {
 void setNewCanId( BYTE newCanId )
 
 {
-  TXB0SIDH &= 0b11110000;                // Clear canid bits
-  TXB0SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for CUBS packet transmissions
-  TXB0SIDL = ( newCanId & 0x07) << 5;
+    if ((newCanId >= 1) && (newCanId <= 99)) {
+        canID = newCanId;
+        TXB0SIDH &= 0b11110000;                // Clear canid bits
+        TXB0SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for CUBS packet transmissions
+        TXB0SIDL = ( newCanId & 0x07) << 5;
 
-  TXB1SIDH &= 0b11110000;                // Clear canid bits
-  TXB1SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
-  TXB1SIDL = TXB0SIDL;
+        TXB1SIDH &= 0b11110000;                // Clear canid bits
+        TXB1SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
+        TXB1SIDL = TXB0SIDL;
 
-  TXB2SIDH &= 0b11110000;               // Clear canid bits
-  TXB2SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
-  TXB2SIDL = TXB0SIDL;
+        TXB2SIDH &= 0b11110000;               // Clear canid bits
+        TXB2SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
+        TXB2SIDL = TXB0SIDL;
 
-  ee_write((WORD)EE_CAN_ID, newCanId );       // Update saved value
+     ee_write((WORD)EE_CAN_ID, newCanId );       // Update saved value
+    }
 }
 
 
@@ -620,7 +623,13 @@ void canFillRxFifo(void)
   FIFOWMIF = 0;
 } // canFillRxFifo
 
-
+/* start a self enumeration */
+void doEnum(void) {
+    if (! enumerationInProgress) {
+        enumerationRequired = TRUE;
+        // don't set the start time so it should start on next main loop cycle
+    }
+}
 //***********************************************************************************************
 // Check if enumeration pending, if so kick it off providing hold off time has expired
 // If enumeration complete, find and set new can id
@@ -632,7 +641,7 @@ void processEnumeration(void)
 
     if (enumerationRequired && (tickTimeSince(enumerationStartTime) > ENUMERATION_HOLDOFF ))
     {
-        for (i=0; i< ENUM_ARRAY_SIZE; i++)
+        for (i=1; i< ENUM_ARRAY_SIZE; i++)
             enumerationResults[i] = 0;
         enumerationResults[0] = 1;  // Don't allocate canid 0
 
@@ -644,20 +653,26 @@ void processEnumeration(void)
     else if (enumerationInProgress && (tickTimeSince(enumerationStartTime) > ENUMERATION_TIMEOUT ))
     {
         // Enumeration complete, find first free canid
-
-        for (i=0; (enumerationResults[i] == 0xFF) && (i < ENUM_ARRAY_SIZE); i++);   // Find byte in array with first free flag
+        
+        // Find byte in array with first free flag. Skip over 0xFF bytes
+        for (i=0; (enumerationResults[i] == 0xFF) && (i < ENUM_ARRAY_SIZE); i++) {
+            ;
+        } 
 
         if ((enumResult = enumerationResults[i]) != 0xFF)
         {
-            for (newCanId = i*8; (enumResult & 0x01); newCanId++)
+            for (newCanId = i*8; (enumResult & 0x01); newCanId++) {
                 enumResult >>= 1;
-            canID = newCanId;
-            setNewCanId(canID);
+            }
+            if ((newCanId >= 1) && (newCanId <= 99)) {
+                canID = newCanId;
+                setNewCanId(canID);
+            }
         }
         else //TODO  send error segment full packet  - and presumably just keep current CANID?
         {
         }
-        enumerationInProgress = FALSE;
+        enumerationRequired = enumerationInProgress = FALSE;
 
     }
 }  // Process enumeration
@@ -675,13 +690,14 @@ BOOL checkIncomingPacket(CanPacket *ptr)
     BOOL        msgFound;
 
     msgFound = FALSE;
-    incomingCanId = (ptr->buffer[sidh] << 3) + (ptr->buffer[sidl] >> 5);
+    incomingCanId = ((ptr->buffer[sidh] << 3) + (ptr->buffer[sidl] >> 5)) & 0x7f;
 
-    if (enumerationInProgress)
+    if (enumerationInProgress) {
         arraySetBit( enumerationResults, incomingCanId);
-    else if (!enumerationRequired && (incomingCanId == canID))    
+    } else if (!enumerationRequired && (incomingCanId == canID))    
     {
         // If we receive a packet with our own canid, initiate enumeration as automatic conflict resolution (Thanks to Bob V for this idea)
+        // we know enumerationInProgress = FALSE here
         enumerationRequired = TRUE;
         enumerationStartTime.Val = tickGet();  // Start hold off time for self enumeration
     }
