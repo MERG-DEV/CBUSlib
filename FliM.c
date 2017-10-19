@@ -141,10 +141,7 @@ void FLiMSWCheck( void )
                 flimState = fsPressed;
                                        
                 cbusMsg[d1] = (nodeID >>8)&0xff;
-                cbusMsg[d2] = nodeID & 0xff;
-                    // This isn't part of the CBUS spec but it is very useful
-                // have to disable this as it seems that FCU can't cope when NN is zero
-//                    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );     
+                cbusMsg[d2] = nodeID & 0xff;  
                 switchTime.Val = tickGet();
             }
             break;
@@ -438,11 +435,13 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
 #endif
                             
             case OPC_CANID:
-                setNewCanId(rx_ptr[d3]);
+                if (! setNewCanId(rx_ptr[d3])) {
+                    doError(CMDERR_INVALID_EVENT);  // seems a strange error code but that's what the spec says...
+                }
                 break;
             
             case OPC_ENUM:
-                doEnum();
+                doEnum(TRUE);
                 break;
                 
             default:
@@ -516,13 +515,6 @@ void QNNrespond()
     cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
 }
 
-/**
- * Send node number acknowledge.
- */
-void doNNack( void ) 
-{
-	cbusSendOpcMyNN(0, OPC_NNACK, cbusMsg);
-} // doNNack
 
 /**
  * Read one node parameter by index.

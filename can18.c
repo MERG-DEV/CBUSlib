@@ -54,6 +54,7 @@
 
 
 #include "can18.h"
+#include "cbus.h"
 #include <string.h>
 #ifdef __18CXX
 #pragma udata CANTX_FIFO
@@ -90,6 +91,7 @@ BYTE  rxFifoUsage;
 
 TickValue   enumerationStartTime;
 BOOL    enumerationRequired;
+BOOL    resultRequired;
 BOOL    enumerationInProgress;
 BYTE    enumerationResults[ENUM_ARRAY_SIZE];
 
@@ -101,6 +103,8 @@ static BYTE* _PointBuffer(BYTE b);
 void processEnumeration(void);
 BOOL checkIncomingPacket(CanPacket *ptr);
 BOOL insertIntoRxFifo( CanPacket *ptr );
+
+extern BYTE    cbusMsg[pktsize];
 
 
 //*******************************************************************************
@@ -300,7 +304,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
 
 // Set a new can id
 
-void setNewCanId( BYTE newCanId )
+BOOL setNewCanId( BYTE newCanId )
 
 {
     if ((newCanId >= 1) && (newCanId <= 99)) {
@@ -317,7 +321,10 @@ void setNewCanId( BYTE newCanId )
         TXB2SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
         TXB2SIDL = TXB0SIDL;
 
-     ee_write((WORD)EE_CAN_ID, newCanId );       // Update saved value
+        ee_write((WORD)EE_CAN_ID, newCanId );       // Update saved value
+        return TRUE;
+    } else {
+        return FALSE;
     }
 }
 
@@ -624,10 +631,11 @@ void canFillRxFifo(void)
 } // canFillRxFifo
 
 /* start a self enumeration */
-void doEnum(void) {
+// don't set the start time so it should start on next main loop cycle
+void doEnum(BOOL sendResult) {
+    resultRequired = sendResult;
     if (! enumerationInProgress) {
         enumerationRequired = TRUE;
-        // don't set the start time so it should start on next main loop cycle
     }
 }
 //***********************************************************************************************
@@ -667,10 +675,16 @@ void processEnumeration(void)
             if ((newCanId >= 1) && (newCanId <= 99)) {
                 canID = newCanId;
                 setNewCanId(canID);
+                if (resultRequired) {
+                    cbusSendOpcMyNN( 0, OPC_NNACK, cbusMsg );   // this will get sent for all successful self enums but maybe only required for the ENUM command
+                }
             }
         }
-        else //TODO  send error segment full packet  - and presumably just keep current CANID?
+        else 
         {
+            if (resultRequired) {
+                doError(CMDERR_INVALID_EVENT);  // seems a strange error code but that's what the spec says...
+            }
         }
         enumerationRequired = enumerationInProgress = FALSE;
 
@@ -698,8 +712,8 @@ BOOL checkIncomingPacket(CanPacket *ptr)
     {
         // If we receive a packet with our own canid, initiate enumeration as automatic conflict resolution (Thanks to Bob V for this idea)
         // we know enumerationInProgress = FALSE here
-        enumerationRequired = TRUE;
-        enumerationStartTime.Val = tickGet();  // Start hold off time for self enumeration
+        doEnum(FALSE);
+        enumerationStartTime.Val = tickGet();  // Start hold off time for self enumeration - start after 200ms delay
     }
 
     // Check for RTR - self enumeration request from another module

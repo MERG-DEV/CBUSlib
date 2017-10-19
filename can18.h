@@ -152,7 +152,7 @@ extern  BYTE  rxFifoUsage;
 
 
 void canInit(BYTE busNum, BYTE initCanID);
-void setNewCanId( BYTE newCanId );
+BOOL setNewCanId( BYTE newCanId );
 BOOL canSend(BYTE *msg, BYTE msgLen);
 BOOL canTX( CanPacket *msg );
 BOOL canQueueRx( CanPacket *msg );
@@ -162,7 +162,7 @@ void checkTxFifo( void );
 void checkCANTimeout( void );
 void canTxError( void );
 void canInterruptHandler( void );
-void doEnum(void);
+void doEnum(BOOL sendResult);
 
 #endif
 
