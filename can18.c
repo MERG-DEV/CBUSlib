@@ -231,12 +231,12 @@ void canInit(BYTE busNum, BYTE initCanID) {
 //  RXFCON0 = 0;  // Disable filters
 //  RXFCON1 = 0;
 
-  // Configure the buffers to receive all valid messages
-  // RXB0CON = RXB1CON = B0CON = B1CON = B2CON = B3CON = B4CON = B5CON = 0;
+  // Configure the buffers to receive all valid std length messages
+  // RXB0CON = RXB1CON = 0x20; B0CON = B1CON = B2CON = B3CON = B4CON = B5CON = 0;
 
    // Clear RXFUL bits
-    RXB0CON = 0;
-    RXB1CON = 0;
+    RXB0CON = 0x20;     // IH changed from 0 so that RXM = 01. Receive only std messages
+    RXB1CON = 0x20;     // IH changed from 0 so that RXM = 01. Receive only std messages
     B0CON = 0;
     B1CON = 0;
     B2CON = 0;
