@@ -669,12 +669,10 @@ void doRqmn(void)
     
     
     cbusMsg[d0] = OPC_NAME;
-    
-    for (copyCounter = 0; *namptr != 0; copyCounter++ ) 
+    // This MUST be 7 characters. 
+    for (copyCounter = 0; copyCounter < 7; copyCounter++ ) 
       cbusMsg[copyCounter+d1] = *namptr++;
-  
-    for (padCounter = copyCounter; padCounter < 7; padCounter++ ) 
-      cbusMsg[padCounter+d1] = ' ';
+    // The source module_type_name string is now padded with spaces so no need to do it here.
     
     cbusSendMsg( 0, cbusMsg );
     
