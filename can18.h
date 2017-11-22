@@ -55,7 +55,9 @@
 #include "hwsettings.h"
 #include "TickTime.h"
 
-#define DEFAULT_CANID   0x70                        // starting value, likely to be modified by auto conflict resolution
+#define DEFAULT_CANID   0x01                        // starting value, likely to be modified by auto conflict resolution
+                                                    // Was originally 0x70 = 112 but supposed to be in range 1-99
+                                                    // will cause a conflict but at least we can do auto conflict resolution
 #define MAX_CANID       0x7F
 #define ENUM_ARRAY_SIZE (MAX_CANID/8)+1              // Size of array for enumeration results
 #define LARB_RETRIES    10                          // Number of retries for lost arbitration
