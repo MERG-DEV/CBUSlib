@@ -51,7 +51,7 @@
 #include "can18.h"
 
 extern BOOL validateNV(BYTE NVindex, BYTE oldValue, BYTE newValue);
-extern void actUponNVchange(BYTE NVindex, BYTE NVvalue);
+extern void actUponNVchange(BYTE NVindex, BYTE oldValue, BYTE NVvalue);
 extern BYTE evtIdxToTableIndex(BYTE evtIdx);
 extern BYTE tableIndexToEvtIdx(BYTE tableIndex);
 extern BOOL validStart(BYTE tableIndex);
@@ -606,7 +606,7 @@ void doNvset(BYTE NVindex, BYTE NVvalue)
 #ifdef NV_CACHE
             loadNvCache();
 #endif
-            actUponNVchange(NVindex, NVvalue);
+            actUponNVchange(NVindex, oldValue, NVvalue);
             cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);
         } 
         else 
