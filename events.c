@@ -817,7 +817,10 @@ BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
     // Didn't find a provisioned event so now check for programmed default events
     // The default events are application specific so call back into application space
     if (getDefaultProducedEvent(paction)) {
-        return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
+        if (producedEvent.EN != 0)
+            return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
+        // lie and say we sent it
+        return TRUE;
     }
     // Didn't find a provisioned event so instead send a debug message containing the action
     cbusMsg[d3] = paction & 0xFF;
