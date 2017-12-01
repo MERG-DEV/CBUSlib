@@ -248,8 +248,8 @@ void doNenrd(unsigned char index) {
     cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
     
     // DEBUG TODO remove
-    cbusMsg[d7] = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte))); 
-    cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+    //cbusMsg[d7] = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte))); 
+    //cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
 } // doNenrd
 
 /**

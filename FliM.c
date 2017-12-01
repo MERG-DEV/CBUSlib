@@ -857,11 +857,11 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
     }
-    evNum--;    // Convert from CBUS numbering (starts at 1 for produced action))
     
     cbusMsg[d3] = eventNumber >> 8;
     cbusMsg[d4] = eventNumber & 0x00FF;
     cbusMsg[d5] = evNum;
+    evNum--;    // Convert from CBUS numbering (starts at 1 for produced action))
     evVal = getEv(tableIndex, evNum);
     if (evVal >= 0) {
         cbusMsg[d6] = evVal;
