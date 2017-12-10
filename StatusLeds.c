@@ -59,7 +59,7 @@ enum FlashStates    flashState;
 /**
  * Initialise with both LEDs on.
  */
-void initStatusLeds() 
+void initStatusLeds(void) 
 {
     TRIS_LED1Y = 0;
     TRIS_LED2G = 0;
@@ -70,7 +70,7 @@ void initStatusLeds()
 /**
  * Set the Green LED and turn of the Yellow LED.
  */
-void setSLiMLed() 
+void setSLiMLed(void) 
 {
     LED1Y = 0;
     LED2G = 1;
@@ -79,7 +79,7 @@ void setSLiMLed()
 /**
  * Set the yellow LED and turn off the green LED.
  */
-void setFLiMLed() 
+void setFLiMLed(void) 
 {
     LED1Y = 1;
     LED2G = 0;
@@ -101,7 +101,7 @@ void setStatusLed( BOOL FLiMLED )
 /**
  * Flash the FLiM LED.
  */
-void doFLiMFlash() 
+void doFLiMFlash(void) 
 {
     LED1Y = !LED1Y;
     flashTime.Val = tickGet();
@@ -120,7 +120,7 @@ void startFLiMFlash( BOOL fast )
 /**
  * Process the FLiM LED flashing. Call regularly.
  */
-void checkFlashing() 
+void checkFlashing(void) 
 {
     switch (flashState) 
     {

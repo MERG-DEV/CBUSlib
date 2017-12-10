@@ -85,7 +85,7 @@ BYTE readFlashBlock(WORD flashAddr);
 /**
  *  Initialise variables for Flash program tracking.
  */
-void initRomOps() 
+void initRomOps(void) 
 
 {
     flashFlags.asByte = 0;

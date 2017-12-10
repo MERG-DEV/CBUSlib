@@ -67,7 +67,7 @@ WORD    deviceid;      // Device id in config memory
 // Static variables local to this library
 #else
 #pragma romdata CPUID
-WORD    deviceid;      // Device id in config memory
+//WORD    deviceid;      // Device id in config memory
 #pragma romdata
 
 
@@ -107,8 +107,8 @@ void flimInit(void) {
     
     flimState = ee_read((WORD)EE_FLIM_MODE);   // Get flim mode from EEPROM
     prevFlimState = flimState;
-    eventsInit();
     cbusInit(DEFAULT_NN);
+    eventsInit();   // must be called afer cbusInit() to ensure nodeId is initialised
     FlashStatus = FALSE;
     setStatusLed(flimState == fsFLiM);
     
@@ -501,7 +501,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
  *  QNN Respond.
  * Send response bytes to QNN query
  */
-void QNNrespond() 
+void QNNrespond(void) 
 
 {
     FLiMprmptr  paramptr;

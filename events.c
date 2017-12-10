@@ -153,6 +153,8 @@ BYTE eventChains[HASH_LENGTH][CHAIN_LENGTH];    // MIO: 32*20 bytes = 640
  */
 void eventsInit( void ) {
 #ifdef HASH_TABLE
+    // nodeId must already to have been initialised. 
+    // Therefore make sure cbusInit has already been called
     rebuildHashtable();
 #endif
 } //eventsInit
@@ -169,7 +171,7 @@ BOOL validStart(unsigned char tableIndex) {
 }
 
 
-void clearAllEvents() {
+void clearAllEvents(void) {
     unsigned char tableIndex;
         for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
             // set the free flag
@@ -232,8 +234,8 @@ void doNenrd(unsigned char index) {
     if ( ! validStart(tableIndex)) {
         doError(CMDERR_INVALID_EVENT);
             // DEBUG  TODO remove
-        cbusMsg[d7] = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte))); 
-        cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+//        cbusMsg[d7] = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte))); 
+//        cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
         return;
     }
     n = getNN(tableIndex);
@@ -246,10 +248,7 @@ void doNenrd(unsigned char index) {
             
     cbusMsg[d7] = index; 
     cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
-    
-    // DEBUG TODO remove
-    //cbusMsg[d7] = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte))); 
-    //cbusSendOpcMyNN( 0, OPC_ENRSP, cbusMsg );
+
 } // doNenrd
 
 /**
@@ -281,7 +280,7 @@ void doRqevn(void) {
  * @param nodeNumber
  * @param eventNumber
  */
-void    doAreq(WORD nodeNumber, WORD eventNumber) {
+void doAreq(WORD nodeNumber, WORD eventNumber) {
     PRODUCER_ACTION_T paction;
     int ev0;
     
