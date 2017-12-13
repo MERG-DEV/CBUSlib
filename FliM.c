@@ -882,7 +882,7 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
  * @param blinkstatus
  * @return the current LED state
  */
-BYTE BlinkLED( BOOL blinkstatus )
+/*BYTE BlinkLED( BOOL blinkstatus )
 {
 	BYTE LEDstatus;
 
@@ -896,4 +896,5 @@ BYTE BlinkLED( BOOL blinkstatus )
 	return( LEDstatus ? 1 : 0 );
 	
 } // BlinkLED
+*/
 

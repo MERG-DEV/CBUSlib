@@ -161,7 +161,9 @@ void eventsInit( void ) {
 
 BOOL validStart(unsigned char tableIndex) {
     EventTableFlags f;
+#ifdef SAFETY
     if (tableIndex >= NUM_EVENTS) return FALSE;
+#endif
     f.asByte = readFlashBlock((WORD)(& (eventTable[tableIndex].flags.asByte)));
     if (( !f.freeEntry) && ( ! f.continuation)) {
         return TRUE;
@@ -327,8 +329,10 @@ unsigned char removeEvent(WORD nodeNumber, WORD eventNumber) {
 
 unsigned char removeTableEntry(unsigned char tableIndex) {
     EventTableFlags f;
-    
+
+#ifdef SAFETY
     if (tableIndex >= NUM_EVENTS) return CMDERR_INV_EV_IDX;
+#endif
     if (validStart(tableIndex)) {
         // set the free flag
         writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xff);
