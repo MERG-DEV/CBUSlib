@@ -183,6 +183,10 @@ BYTE    eventHash( BYTE nodeByte, BYTE eventBYTE );
 
 BOOL    parseCbusEvent( BYTE *msg );
 
+#ifdef HASH_TABLE
+extern void rebuildHashtable(void);
+#endif
+
 
 
 #endif	// __EVENTS_H
