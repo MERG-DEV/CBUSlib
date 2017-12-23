@@ -736,6 +736,9 @@ void SaveNodeDetails(WORD nodeID, enum FLiMStates flimState)
 {
     ee_write_short((WORD)EE_NODE_ID, nodeID);
     ee_write((WORD)EE_FLIM_MODE, flimState);
+#ifdef HASH_TABLE
+    rebuildHashtable();
+#endif
 } // SaveNodeDetails
 
 
