@@ -47,7 +47,7 @@
 
 */
 
-#include "cbusdefs8m.h"
+#include "cbusdefs8q.h"
 #include "hwsettings.h"
 #include "cbusconfig.h"
 
