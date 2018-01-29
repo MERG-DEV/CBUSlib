@@ -161,7 +161,7 @@
         #define CLKMHZ .16
     #endif
     #ifdef CPUF18K
-        #define CLKMHZ .64
+        #define CLKMHZ .16
     #endif    
 #endif
     
