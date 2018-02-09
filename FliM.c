@@ -798,19 +798,28 @@ void doReval(BYTE enNum, BYTE evNum)
     BYTE evIndex;
     BYTE tableIndex = evtIdxToTableIndex(enNum);
     
-    if ((evNum == 0) || (evNum > EVperEVT)) 
+    if (evNum > EVperEVT)
     {
         cbusMsg[d3] = CMDERR_INV_EV_IDX;
         cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
         return;
     }
+    
     evIndex = evNum-1;    // Convert from CBUS numbering (starts at 1 for produced action))
     
     // check it is a valid index
     if (tableIndex < NUM_EVENTS) 
         if (validStart(tableIndex)) 
         {
-            int evVal = getEv(tableIndex, evIndex);
+            int evVal;
+            if (evNum == 0) 
+            {
+                evVal = numEv(tableIndex);
+            } 
+            else 
+            {
+                evVal = getEv(tableIndex, evIndex);
+            }
             if (evVal >= 0) {
                 cbusMsg[d3] = enNum;
                 cbusMsg[d4] = evNum;

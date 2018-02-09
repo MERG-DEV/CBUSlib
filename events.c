@@ -563,6 +563,32 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
 }
 
 /**
+ * Return the number of EVs for an event.
+ * @param tableIndex the index of the start of an event
+ * @return the number of EVs
+ */
+BYTE numEv(unsigned char tableIndex) {
+    EventTableFlags f;
+    BYTE num=0;
+    if ( ! validStart(tableIndex)) {
+        // not a valid start
+        return 0;
+    }
+    f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
+    while (f.continued) {
+        tableIndex = readFlashBlock((WORD)(&(eventTable[tableIndex].next)));
+        if (tableIndex == NO_INDEX) {
+            return 0;
+        }
+        f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
+        num += EVENT_TABLE_WIDTH;
+    }
+    num += f.maxEvUsedPlusOne;
+    num--;
+    return num;
+}
+
+/**
  * Return all the EV values for an event. EVs are put into the global evs array.
  * @param tableIndex the index of the start of an event
  * @return the error code or 0 for no error
