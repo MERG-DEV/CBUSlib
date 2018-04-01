@@ -172,6 +172,7 @@ _endasm
 _asm
         TBLRDPOSTINC            // Table pointer ready for next 32
 _endasm
+        TBLPTRU = 0x00; // this will be set to 1 after writing 0xFFFF so reset it
         ei();     // enable all interrupts
 #endif
 
@@ -285,6 +286,7 @@ READ_BLOCK:
         BNZ READ_BLOCK
 _endasm
 #endif
+        TBLPTRU = 0x00; // this will be set to 1 after reading 0xFFFF so reset it
         flashFlags.loaded = TRUE;
 
     }
