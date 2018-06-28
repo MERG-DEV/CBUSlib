@@ -54,10 +54,13 @@
 TickValue           flashTime;
 enum FlashStates    flashState; 
 
+TickValue           flickerTime;
+enum FlickerStates  flickerState;
+
 //******* Routines to set the Green and Yellow SLiM and FLiM LEDs *************************
 
 /**
- * Initialise with both LEDs on.
+ * Initialise with both LEDs off.
  */
 void initStatusLeds(void) 
 {
@@ -133,6 +136,45 @@ void checkFlashing(void)
             if (tickTimeSince(flashTime) > FAST_FLASH_TIME)
                 doFLiMFlash();
             break;
-    }        
+    }
+    switch(flickerState) {
+        case flickWaitingOn:
+            // turn on the LED - FLiM this would be the green SLiM led
+            if (flimState == fsSLiM) {
+                LED2G = 1;
+            } else {
+                LED1Y = 1;
+            }
+            flickerState = flickOn;
+            break;
+        case flickOn:
+            // time to turn off yet?
+            if (tickGet() >= flickerTime.Val) {
+                // turn off the LED - in FLiM this would be the green SLiM led
+                if (flimState == fsSLiM) {
+                    LED2G = 0;
+                } else {
+                    LED1Y = 0;
+                }
+                flickerState = flickOff;
+            }
+            break;
+    }
+}
+
+/**
+ * Flicker the other LED on for a short time
+ */
+void shortFlicker() {
+    flickerTime.Val = tickGet() + SHORT_FLICKER_TIME;
+    flickerState = flickWaitingOn;
+}
+
+/**
+ * Flicker the other LED on for a longer time
+ */
+void longFlicker() {
+    flickerTime.Val = tickGet() + LONG_FLICKER_TIME;
+    flickerState = flickWaitingOn;
 }
 

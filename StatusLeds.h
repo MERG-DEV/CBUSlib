@@ -64,6 +64,15 @@ enum FlashStates
     flFLiMFast  // Fast flash of FLiM LED
 };
 
+#define SHORT_FLICKER_TIME  HUNDRED_MILI_SECOND     // a short flicker
+#define LONG_FLICKER_TIME   HALF_SECOND             // a long flicker
+enum FlickerStates 
+{
+    flickOff=0,	// Flicker LED off
+    flickWaitingOn,	// waiting to flick on at next poll
+    flickOn         // on and counting down
+};
+
 void initStatusLeds(void);
 void setSLiMLed(void);
 void setFLiMLed(void);
