@@ -80,6 +80,7 @@ void setStatusLed( BOOL FLiMLED );
 void startFLiMFlash( BOOL fast );
 void doFLiMFlash(void);
 void checkFlashing(void);
-
+void shortFlicker(void);
+void longFlicker(void);
 
 #endif	// __STATUSLEDS_H

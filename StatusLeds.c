@@ -166,8 +166,10 @@ void checkFlashing(void)
  * Flicker the other LED on for a short time
  */
 void shortFlicker() {
-    flickerTime.Val = tickGet() + SHORT_FLICKER_TIME;
-    flickerState = flickWaitingOn;
+    if (flickerTime.Val < tickGet() + SHORT_FLICKER_TIME) {
+        flickerTime.Val = tickGet() + SHORT_FLICKER_TIME;
+        flickerState = flickWaitingOn;
+    }
 }
 
 /**
