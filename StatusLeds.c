@@ -141,9 +141,9 @@ void checkFlashing(void)
         case flickWaitingOn:
             // turn on the LED - FLiM this would be the green SLiM led
             if (flimState == fsSLiM) {
-                LED2G = 1;
-            } else {
                 LED1Y = 1;
+            } else {
+                LED2G = 1;
             }
             flickerState = flickOn;
             break;
@@ -152,9 +152,9 @@ void checkFlashing(void)
             if (tickGet() >= flickerTime.Val) {
                 // turn off the LED - in FLiM this would be the green SLiM led
                 if (flimState == fsSLiM) {
-                    LED2G = 0;
-                } else {
                     LED1Y = 0;
+                } else {
+                    LED2G = 0;
                 }
                 flickerState = flickOff;
             }
