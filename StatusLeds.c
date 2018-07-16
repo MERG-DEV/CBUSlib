@@ -69,6 +69,7 @@ void initStatusLeds(void)
     LED1Y = 0;
     LED2G = 0;
     flashState = flNone;
+    flickerTime.Val = 0;
 }
 /**
  * Set the Green LED and turn of the Yellow LED.
