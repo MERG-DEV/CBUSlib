@@ -394,7 +394,7 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
                 writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
             
                 for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
-                    writeFlashByte((BYTE*)&(eventTable[tableIndex].evs[e]), NO_ACTION);
+                    writeFlashByte((BYTE*)&(eventTable[tableIndex].evs[e]), EV_FILL);
                 }
                 flushFlashImage();
 #ifdef HASH_TABLE
@@ -442,9 +442,10 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
         }
     }
 #else
-    for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+    unsigned char tableIndex;
+    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         EventTableFlags f;
-        f.asByte = readFlashBlock((WORD)(& eventTable[i].flags));
+        f.asByte = readFlashBlock((WORD)(& eventTable[tableIndex].flags));
         if (( ! f.freeEntry) && ( ! f.continuation)) {
             WORD nn, en;
             nn = getNN(tableIndex);
@@ -495,7 +496,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
                     setFlashWord((WORD*)&(eventTable[nextIdx].event.EN), 0xffff); // this field not used
                     writeFlashByte((BYTE*)&(eventTable[nextIdx].flags.asByte), 0x20);    // set continuation flag, clear free and numEV to 0
                     for (e = 0; e < EVENT_TABLE_WIDTH; e++) {
-                        writeFlashByte((BYTE*)&(eventTable[nextIdx].evs[e]), NO_ACTION); // clear the EVs
+                        writeFlashByte((BYTE*)&(eventTable[nextIdx].evs[e]), EV_FILL); // clear the EVs
                     }
                     // set the next of the previous in chain
                     writeFlashByte((BYTE*)&(eventTable[tableIndex].next), nextIdx);
@@ -521,7 +522,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
         writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
     }
     // If we are deleting then see if we can remove all
-    if (evVal == NO_ACTION) {
+    if (evVal == EV_FILL) {
         checkRemoveTableEntry(startIndex);
     }
     return 0;
@@ -611,7 +612,7 @@ BYTE getEVs(unsigned char tableIndex) {
         f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
         if (! f.continued) {
             for (; evNum < EVperEVT; evNum++) {
-                evs[evNum] = NO_ACTION;
+                evs[evNum] = EV_FILL;
             }
             return 0;
         }
@@ -733,7 +734,7 @@ void deleteConsumerActionRange(CONSUMER_ACTION_T action, unsigned char number) {
                 
             for (e=1; e<EVperEVT; e++) {
                 if ((evs[e] >= action) && (evs[e] < action+number)) {
-                    writeEv(tableIndex, e, NO_ACTION);
+                    writeEv(tableIndex, e, EV_FILL);
                     updated = TRUE;
                 }
             }
@@ -761,7 +762,7 @@ void deleteProducerActionRange(PRODUCER_ACTION_T action, unsigned char number) {
             f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
             pa = readFlashBlock((WORD)(&(eventTable[tableIndex].evs[0])));
             if ((pa >= action) && (pa < action+number)) {
-                writeEv(tableIndex, 0, NO_ACTION);
+                writeEv(tableIndex, 0, EV_FILL);
                 checkRemoveTableEntry(tableIndex);
             }                
         }
@@ -784,7 +785,7 @@ void checkRemoveTableEntry(unsigned char tableIndex) {
             return;
         }
         for (e=0; e<EVperEVT; e++) {
-            if (evs[e] != NO_ACTION) {
+            if (evs[e] != EV_FILL) {
                 return;
             }
         }
@@ -803,6 +804,9 @@ void checkRemoveTableEntry(unsigned char tableIndex) {
  */ 
 Event producedEvent;
 BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
+#ifndef HASH_TABLE
+    unsigned char tableIndex;
+#endif
     if ((paction < ACTION_PRODUCER_BASE) || (paction >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
     if (action2Event[paction-ACTION_PRODUCER_BASE] == NO_INDEX) return FALSE;
@@ -810,16 +814,16 @@ BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
     producedEvent.EN = getEN(action2Event[paction-ACTION_PRODUCER_BASE]);
     return TRUE;
 #else
-    for (unsigned char tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
+    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
-            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[e])) == paction) {
-                ret.NN = getNN(action2Event[paction-ACTION_PRODUCER_BASE])
-                ret.EN = getEN(action2Event[paction-ACTION_PRODUCER_BASE]);
-                return &ret;
+            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[0])) == paction) {
+                producedEvent.NN = getNN(tableIndex);
+                producedEvent.EN = getEN(tableIndex);
+                return TRUE;
             }
         }
     }
-    return NULL,
+    return NULL;
 #endif
 }
 

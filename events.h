@@ -136,8 +136,7 @@ typedef struct {
 #define     EVENT_ON_MASK    0b00000001
 #define     EVENT_SHORT_MASK 0b00001000
 
-// NO_ACTION is used as the value to fill new events with
-#define NO_ACTION           0
+#define EV_FILL             0
 #define NO_INDEX            0xff
 
 // Function prototypes for event management
