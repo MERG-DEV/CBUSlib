@@ -111,6 +111,110 @@ extern void processEvent(unsigned char action, BYTE * msg);
 //
 // define HASH_TABLE to use event hash tables for fast access - at the expense of some RAM
 
+/*
+ The code in event.c is responsible for storing EVs for each defined event and also for allowing speedy
+lookup of EVs given an Event or finding an Event given a Happening which is stored in EV#1.
+
+Events are stored in the EventTable which consists of rows containing the following fields:
+* EventTableFlags flags         1 byte
+* BYTE next                     1 byte
+* Event event                   4 bytes
+* BYTE evs[EVENT_TABLE_WIDTH]   EVENT_TABLE_WIDTH bytes
+
+The number of table entries is defined ny NUM_EVENTS.
+
+The EVENT_TABLE_WIDTH determines the number of EVs that can be stored within a single EventTable row.
+Where events can have more EVs that can be fitted within a single row then multiple rows are chained
+together using the 'next' field. 'next' indicates the index into the EventTable for chained entries
+for a single Event.
+
+CANMIO sets EVENT_TABLE_WITH to 10 so that size of a row is 16bytes. A chain of two rows can store
+20 EVs. CANMIO has a limit of 20 EVs per event (EVperEVT) so that a maximum of 2 entries are chained.
+
+The 'event' field is only used in the first in a chain of entries and contains the NN/EN of the event.
+
+The EventTableFlags have the following entries:
+maxEvUsedPlusOne                4 bits
+continued                       1 bit
+forceOwnNN                      1 bit
+freeEntry                       1 bit
+
+The 'continued' flag indicates if there is another table entry chained to this one. If the flag is
+set then the 'next' field contains the index of the chained entry.
+
+The 'forceOwnNN' flag indicates that for produced events the NN in the event field should be ignored
+and the module's current NN should be used instead. This allows default events to be maintained even
+if the NN of the module is changed. Therefore this flag should be set for defulat produced events.
+
+The 'freeEntry' flag indicates that this entry in the EventTable is currently unused.
+
+The 'maxEvUsedPlusOne' field records how many of the evs contain valid data. It is only applicable
+for the last entry in the chain since all EVs less than this are assumed to contain valid data.
+Since this field is only 4 bits long this places a limit on the EVENT_TABLE_WIDTH of 15.
+
+EXAMPLE
+Let's go through an example of filling in the table. We'll look at the first 4 entries in the table
+and let's have EVENT_TABLE_WIDTH=4 but have EVperEVT=8.
+
+At the outset there is an empty table. All rows have the 'freeEntry' bit set:
+
+index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
+0       0                       0               0               1               0       0:0     0,0,0,0
+1       0                       0               0               1               0       0:0     0,0,0,0
+2       0                       0               0               1               0       0:0     0,0,0,0
+3       0                       0               0               1               0       0:0     0,0,0,0
+
+Now if an EV of an event is set (probably using EVLRN CBUS command) then the table is updated.
+Let's set EV#1 for event 256:101 to the value 99:
+
+index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
+0       1                       0               0               0               0       256:101 99,0,0,0
+1       0                       0               0               1               0       0:0     0,0,0,0
+2       0                       0               0               1               0       0:0     0,0,0,0
+3       0                       0               0               1               0       0:0     0,0,0,0
+
+Now let's set EV#2 of event 256:102 to 15:
+
+index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
+0       1                       0               0               0               0       256:101 99,0,0,0
+1       2                       0               0               0               0       256:102 0,15,0,0
+2       0                       0               0               1               0       0:0     0,0,0,0
+3       0                       0               0               1               0       0:0     0,0,0,0
+
+Now let's set EV#8 of event 256:101 to 29:
+
+index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
+0       1                       1               0               0               0       256:101 99,0,0,0
+1       2                       0               0               0               0       256:102 0,15,0,0
+2       4                       0               0               0               0       0:0     0,0,0,29
+3       0                       0               0               1               0       0:0     0,0,0,0
+
+To perform the speedy lookup of EVs given an Event a hash table can be used by defining HASH_TABLE.
+The hash table is stored in
+BYTE eventChains[HASH_LENGTH][CHAIN_LENGTH];
+
+An event hashing function is provided BYTE getHash(nn, en) which should give a reasonable distribution
+of hash values given the typical events used.
+
+This table is populated from the EventTable upon power up using rebuildHashtable(). This function
+must be called before attempting to use the hash table. Each Event from the EventTable is hashed
+using getHash(nn,en), trimmed to the HASH_LENGTH and the index in the EventTable is then stored in
+the eventChains at the next available bucket position.
+
+When an Event is received from CBUS and we need to find its index within the EventTable it is firstly
+hashed using getHash(nn,en), trimmed to HASH_LENGTH and this is used as the first index into
+eventChains[][]. We then step through the second index of buckets within the chain. Each entry is
+an index into the eventTable and the eventTable's event field is checked to see if it matches the
+received event. It it does match then the index into eventTable has been found and is returned. The
+EVs can then be accessed from the ev[] field.
+
+If PRODUCED_EVENTS is defined in addition to HASH_TABLE then an additional lookup table
+BYTE action2Event[NUM_PRODUCER_ACTIONS] is used to obtain an Event using a Happening (previously
+called Actions) stored in EV#1. This table is also populated using rebuildHashTable(). Given a
+Happening this table can be used to obtain the index into the EventTable for the Happening so the
+Event at that index in the EventTable can be transmitted onto the CBUS.
+ */
+
 #ifdef __XC8
 const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 #else
