@@ -143,7 +143,6 @@ Version history:
 #define MTYP_CANASTOP	 54	    // DCC stop generator    
 #define MTYP_CANCSB      55     // CANCMD with on board 3A booster  
 #define MTYP_CANMAGOT	 56     // Magnet on Track detector    
-#define MTYP_CANCOMPUTE	 57     // Event processing engin
 #define MTYP_CANACE16CMIO 57     //  16 input equivaent to CANACE8C
 #define MTYP_CANPiNODE   58     //  CBUS module based on Raspberry Pi
 #define MTYP_CANDISP     59     //  25K80 version of CANLED64 (IHart and MB)
