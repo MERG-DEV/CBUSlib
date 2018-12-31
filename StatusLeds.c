@@ -66,8 +66,8 @@ void initStatusLeds(void)
 {
     TRIS_LED1Y = 0;
     TRIS_LED2G = 0;
-    LED1Y = 0;
-    LED2G = 0;
+    LED1Y = LED_OFF;
+    LED2G = LED_OFF;
     flashState = flNone;
     flickerTime.Val = 0;
 }
