@@ -512,6 +512,9 @@ void QNNrespond(void)
     cbusMsg[d3] = paramptr->params.manufacturer;
     cbusMsg[d4] = paramptr->params.module_id;
     cbusMsg[d5] = paramptr->params.module_flags;
+    if (flimState == fsFLiM) {
+        cbusMsg[d5] |= PF_FLiM;
+    }
     cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
 }
 
