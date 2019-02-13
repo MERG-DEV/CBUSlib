@@ -184,6 +184,7 @@ void FLiMSWCheck( void )
                     SaveNodeDetails(nodeID, fsSLiM);
                 }
             } 
+#ifdef TEST_MODE
             else if (tickTimeSince(switchTime) > SET_TEST_MODE_TIME) 
             {
                 flimState = fsPressedTest;
@@ -191,6 +192,7 @@ void FLiMSWCheck( void )
                 startFLiMFlash(TRUE);       // Fast flash for test mode
                 
             }
+#endif // TEST_MODE
             break;
             
         case fsFLiMSetup:  // Button pressed whilst in setup mode
@@ -213,7 +215,7 @@ void FLiMSWCheck( void )
                     flimState = fsFLiMSetup;
             }
             break;
-            
+#ifdef TEST_MODE  
         case fsTestMode:   // Button was pressed whilst in test mode
             if (!FLiM_SW) 
             {
@@ -252,6 +254,7 @@ void FLiMSWCheck( void )
             SaveNodeDetails(nodeID, fsSLiM);
             break;
          */
+#endif //TEST_MODE
     } // switch
 
 } // FLiMSWCheck
