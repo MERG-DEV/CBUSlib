@@ -181,6 +181,7 @@ void FLiMSWCheck( void )
                     flimState = fsSLiM;
                     SLiMRevert();
                     setSLiMLed();
+                    nodeID = 0;
                     SaveNodeDetails(nodeID, fsSLiM);
                 }
             } 
