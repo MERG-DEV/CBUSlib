@@ -971,6 +971,7 @@ BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
         // lie and say we sent it
         return TRUE;
     }
+#ifndef TABLED_DEFAULT_EVENTS
     // Didn't find a provisioned event so instead send a debug message containing the action
     cbusMsg[d3] = paction & 0xFF;
     cbusMsg[d4] = paction >> 8;
@@ -978,6 +979,9 @@ BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
     cbusMsg[d6] = status;
     cbusMsg[d7] = 0;
     return cbusSendOpcNN(ALL_CBUS, OPC_ACDAT, -1, cbusMsg);
+#else
+    return FALSE;
+#endif
 }
 #endif
 
