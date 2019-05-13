@@ -113,7 +113,6 @@ const
  MTYP_CANASTOP	 =  54;     //  DCC stop generator 
  MTYP_CANCSB     =  55;     //  CANCMD with additional 3-4A booster on board
  MTYP_CANMAGOT	 =  56;     //  Magnet on Track detector 
- MTYP_CANCOMPUTE =  57;     //  Event processing engine
  MTYP_CANACE16CMIO =  57;     //  16 input equivaent to CANACE8C
  MTYP_CANPiNODE  =  58;     //  CBUS module based on Raspberry Pi
  MTYP_CANDISP    =  59;     //  25K80 version of CANLED64 (IHart and MB)
