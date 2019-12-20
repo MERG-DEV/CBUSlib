@@ -130,8 +130,7 @@ void initRomOps(void)
 #ifndef CPUF18K
     BYTE fwCounter;
 #endif
-    di();     // disable all interrupts
-    
+
     ptr= (WORD)flashbuf;
     // check we are only writing within the persistent data area
     if ((flashblock < MIN_WRITEABLE_FLASH) || (flashblock > MAX_WRITEABLE_FLASH)) {
@@ -139,6 +138,7 @@ void initRomOps(void)
         // assert
         return;
     }
+    di();     // disable all interrupts
     TBLPTR=flashblock;
     TBLPTRU = 0x00; // just to make sure
     FSR0=ptr;
@@ -173,12 +173,12 @@ _asm
         TBLRDPOSTINC            // Table pointer ready for next 32
 _endasm
         TBLPTRU = 0x00; // this will be set to 1 after writing 0xFFFF so reset it
-        ei();     // enable all interrupts
 #endif
 
 #ifdef CPUF18F
     }
 #endif
+    ei();     // enable all interrupts
     
 }
 
