@@ -138,6 +138,9 @@ void initRomOps(void)
         // assert
         return;
     }
+    // Call back into the application to check if now is a good time to write the flash
+    // as the processor will be suspended for up to 2ms.
+    while (! isSuitableTimeToWriteFlash());
     di();     // disable all interrupts
     TBLPTR=flashblock;
     TBLPTRU = 0x00; // just to make sure
@@ -188,6 +191,9 @@ _endasm
  */
 void  writeFlashWithErase(void) 
 {
+    // Call back into the application to check if now is a good time to write the flash
+    // as the processor will be suspended for up to 2ms.
+    while (! isSuitableTimeToWriteFlash());
     // Erase block first
     TBLPTR=flashblock;
     TBLPTRU = 0x00; // just to make sure
