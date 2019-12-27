@@ -154,6 +154,7 @@ extern BOOL getDefaultProducedEvent(PRODUCER_ACTION_T paction);
 extern BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on);
 extern BYTE numEv(unsigned char tableIndex);
 extern int getEv(unsigned char tableIndex, unsigned char evNum);
+extern unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal);
 extern BYTE getEVs(unsigned char tableIndex);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal, BOOL forceOwnNN);
 extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
