@@ -644,8 +644,11 @@ void doRqnp(void)
         cbusMsg[copyCounter] = paramptr->bytes[copyCounter-d1];
     }
     
+    // update the dynamic flags
     if (flimState == fsFLiM) 
         cbusMsg[d1+PAR_FLAGS-1] |= PF_FLiM;
+    if (flimState == fsFLiMLearn) 
+        cbusMsg[d1+PAR_FLAGS-1] |= (PF_LRN | PF_FLiM);
     
     cbusSendMsg(0, cbusMsg);
     

@@ -291,13 +291,13 @@ BOOL validStart(unsigned char tableIndex) {
 
 void clearAllEvents(void) {
     unsigned char tableIndex;
-        for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
-            // set the free flag
-            writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xff);
-        }
-        flushFlashImage();
+    for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
+        // set the free flag
+        writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), 0xff);
+    }
+    flushFlashImage();
 #ifdef HASH_TABLE
-        rebuildHashtable();
+    rebuildHashtable();
 #endif
 }
 
@@ -925,9 +925,9 @@ BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
 #endif
     if ((paction < ACTION_PRODUCER_BASE) || (paction >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
-    if (action2Event[paction-ACTION_PRODUCER_BASE] == NO_INDEX) return FALSE;
-    producedEvent.NN = getNN(action2Event[paction-ACTION_PRODUCER_BASE]);
-    producedEvent.EN = getEN(action2Event[paction-ACTION_PRODUCER_BASE]);
+    if (action2Event[paction] == NO_INDEX) return FALSE;
+    producedEvent.NN = getNN(action2Event[paction]);
+    producedEvent.EN = getEN(action2Event[paction]);
     return TRUE;
 #else
     for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
@@ -971,7 +971,7 @@ BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
         // lie and say we sent it
         return TRUE;
     }
-#ifndef DEBUG_PRODUCED_EVENTS
+#ifdef DEBUG_PRODUCED_EVENTS
     // Didn't find a provisioned event so instead send a debug message containing the action
     cbusMsg[d3] = paction & 0xFF;
     cbusMsg[d4] = paction >> 8;
@@ -1050,7 +1050,7 @@ void rebuildHashtable(void) {
             if (a >= 0) {
                 paction = a;
                 if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
-                    action2Event[paction-ACTION_PRODUCER_BASE] = tableIndex;
+                    action2Event[paction] = tableIndex;
                 }
             }
 #endif
