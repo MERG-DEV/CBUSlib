@@ -433,6 +433,7 @@ Version history:
 #define PF_FLiM			4
 #define PF_BOOT			8
 #define PF_COE			16    // Module can consume its own events    
+#define PF_LRN          32  // module in learn mode
 
 // BUS type that module is connected to
 

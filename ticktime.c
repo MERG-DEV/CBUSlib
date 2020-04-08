@@ -168,10 +168,8 @@ DWORD tickGet(void)
     /* copy the byte extension */
     currentTime.byte.b2 = 0;
     currentTime.byte.b3 = 0;
-    
     /* disable the timer to prevent roll over of the lower 16 bits while before/after reading of the extension */
     TMR_IE = 0;
-
 #if 1
     do
     {
@@ -255,8 +253,9 @@ void tickISR(void)
                 /* there was a timer overflow */
                 TMR_IF = 0;
                 timerExtension1++;
-                if(timerExtension1 == 0)
+                if(timerExtension1 == 0) {
                     timerExtension2++;
+                }
             }
         }
     #endif

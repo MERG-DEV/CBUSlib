@@ -220,7 +220,7 @@ extern void processEvent(unsigned char action, BYTE * msg);
  * and is returned. The EVs can then be accessed from the ev[] field.
  * 
  * If PRODUCED_EVENTS is defined in addition to HASH_TABLE then an additional 
- * lookup table BYTE action2Event[NUM_PRODUCER_ACTIONS] is used to obtain an Event 
+ * lookup table BYTE action2Event[NUM_HAPPENINGS] is used to obtain an Event 
  * using a Happening (previously called Actions) stored in EV#1. This table is 
  * also populated using rebuildHashTable(). Given a Happening this table can be 
  * used to obtain the index into the EventTable for the Happening so the Event 
@@ -250,8 +250,8 @@ rom near EventTable * eventTable = (rom near EventTable*)AT_EVENTS;
 
 #ifdef PRODUCED_EVENTS
 #pragma udata large_event_hash
-// the lookup table to find an EventTable entry by Producer action
-BYTE action2Event[NUM_PRODUCER_ACTIONS];    // MIO: 64+8 bytes
+// the lookup table to find an EventTable entry by Happening
+BYTE action2Event[NUM_HAPPENINGS];    // MIO: 64+8 bytes
 #endif
 // The hashtable to find the EventTable entry by Event.
 // This RAM hash table will probably be more than 256 bytes. With C18 this leads to
@@ -399,19 +399,19 @@ void doRqevn(void) {
  * @param eventNumber
  */
 void doAreq(WORD nodeNumber, WORD eventNumber) {
-    PRODUCER_ACTION_T paction;
+    HAPPENING_T paction;
     int ev0;
     
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
     if (tableIndex == NO_INDEX) return;
     // found the matching event
-    ev0 = getEv(tableIndex, 0); // get the producer action
+    ev0 = getEv(tableIndex, 0); // get the Happening
     if (ev0 < 0) {
         doError(-ev0);
         return;
     }
     paction = ev0;
-    if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
+    if ((paction >= HAPPENING_BASE) && (paction-HAPPENING_BASE< NUM_HAPPENINGS)) {
         unsigned char bit = paction & 0x7;
         unsigned char byte = paction >> 3;
         BOOL status = ee_read((WORD)(EE_AREQ_STATUS+byte)) & (1<<bit);
@@ -838,7 +838,7 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
  * Delete all occurrences of the consumer action.
  * @param action
  */
-void deleteConsumerActionRange(CONSUMER_ACTION_T action, unsigned char number) {
+void deleteActionRange(ACTION_T action, unsigned char number) {
     unsigned char tableIndex;
     for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
@@ -866,10 +866,10 @@ void deleteConsumerActionRange(CONSUMER_ACTION_T action, unsigned char number) {
 }
 
 /**
- * Delete all occurrences of the producer action.
+ * Delete all occurrences of the Happening.
  * @param action
  */
-void deleteProducerActionRange(PRODUCER_ACTION_T action, unsigned char number) {
+void deleteHappeningRange(HAPPENING_T action, unsigned char number) {
     unsigned char tableIndex;
     for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if ( validStart(tableIndex)) {
@@ -919,11 +919,11 @@ void checkRemoveTableEntry(unsigned char tableIndex) {
  * @return TRUE if the produced event is found
  */ 
 Event producedEvent;
-BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
+BOOL getProducedEvent(HAPPENING_T paction) {
 #ifndef HASH_TABLE
     unsigned char tableIndex;
 #endif
-    if ((paction < ACTION_PRODUCER_BASE) || (paction >= ACTION_PRODUCER_BASE + NUM_PRODUCER_ACTIONS)) return NULL;    // not a produced valid action
+    if ((paction < HAPPENING_BASE) || (paction >= HAPPENING_BASE + NUM_HAPPENINGS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
     if (action2Event[paction] == NO_INDEX) return FALSE;
     producedEvent.NN = getNN(action2Event[paction]);
@@ -949,7 +949,7 @@ BOOL getProducedEvent(PRODUCER_ACTION_T paction) {
  * @param on indicated whether an ON event or an OFF event should be sent
  * @return true if the event was successfully sent
  */
-BOOL sendProducedEvent(PRODUCER_ACTION_T paction, BOOL on) {
+BOOL sendProducedEvent(HAPPENING_T paction, BOOL on) {
     unsigned char bit = paction & 0x7;
     unsigned char byte = paction >> 3;
     unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+byte));
@@ -1027,8 +1027,8 @@ void rebuildHashtable(void) {
     int a;
 #ifdef PRODUCED_EVENTS
     // first initialise to nothing
-    PRODUCER_ACTION_T paction;
-    for (paction=0; paction<NUM_PRODUCER_ACTIONS; paction++) {
+    HAPPENING_T paction;
+    for (paction=0; paction<NUM_HAPPENINGS; paction++) {
         action2Event[paction] = NO_INDEX;
     }
 #endif
@@ -1049,7 +1049,7 @@ void rebuildHashtable(void) {
             a = getEv(tableIndex, 0);
             if (a >= 0) {
                 paction = a;
-                if ((paction >= ACTION_PRODUCER_BASE) && (paction-ACTION_PRODUCER_BASE< NUM_PRODUCER_ACTIONS)) {
+                if ((paction >= HAPPENING_BASE) && (paction-HAPPENING_BASE< NUM_HAPPENINGS)) {
                     action2Event[paction] = tableIndex;
                 }
             }
