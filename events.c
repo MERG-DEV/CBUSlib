@@ -251,7 +251,7 @@ rom near EventTable * eventTable = (rom near EventTable*)AT_EVENTS;
 #ifdef PRODUCED_EVENTS
 #pragma udata large_event_hash
 // the lookup table to find an EventTable entry by Happening
-BYTE action2Event[NUM_HAPPENINGS];    // MIO: 64+8 bytes
+BYTE happening2Event[NUM_HAPPENINGS];    // MIO: 64+8 bytes
 #endif
 // The hashtable to find the EventTable entry by Event.
 // This RAM hash table will probably be more than 256 bytes. With C18 this leads to
@@ -399,7 +399,7 @@ void doRqevn(void) {
  * @param eventNumber
  */
 void doAreq(WORD nodeNumber, WORD eventNumber) {
-    HAPPENING_T paction;
+    HAPPENING_T happening;
     int ev0;
     
     unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
@@ -410,10 +410,10 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
         doError(-ev0);
         return;
     }
-    paction = ev0;
-    if ((paction >= HAPPENING_BASE) && (paction-HAPPENING_BASE< NUM_HAPPENINGS)) {
-        unsigned char bit = paction & 0x7;
-        unsigned char byte = paction >> 3;
+    happening = ev0;
+    if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
+        unsigned char bit = happening & 0x7;
+        unsigned char byte = happening >> 3;
         BOOL status = ee_read((WORD)(EE_AREQ_STATUS+byte)) & (1<<bit);
         cbusMsg[d1] = nodeNumber >> 8;
         cbusMsg[d2] = nodeNumber & 0xFF;
@@ -919,20 +919,20 @@ void checkRemoveTableEntry(unsigned char tableIndex) {
  * @return TRUE if the produced event is found
  */ 
 Event producedEvent;
-BOOL getProducedEvent(HAPPENING_T paction) {
+BOOL getProducedEvent(HAPPENING_T happening) {
 #ifndef HASH_TABLE
     unsigned char tableIndex;
 #endif
-    if ((paction < HAPPENING_BASE) || (paction >= HAPPENING_BASE + NUM_HAPPENINGS)) return NULL;    // not a produced valid action
+    if ((happening < HAPPENING_BASE) || (happening >= HAPPENING_BASE + NUM_HAPPENINGS)) return NULL;    // not a produced valid action
 #ifdef HASH_TABLE
-    if (action2Event[paction] == NO_INDEX) return FALSE;
-    producedEvent.NN = getNN(action2Event[paction]);
-    producedEvent.EN = getEN(action2Event[paction]);
+    if (happening2Event[happening-HAPPENING_BASE] == NO_INDEX) return FALSE;
+    producedEvent.NN = getNN(happening2Event[happening-HAPPENING_BASE]);
+    producedEvent.EN = getEN(happening2Event[happening-HAPPENING_BASE]);
     return TRUE;
 #else
     for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
         if (validStart(tableIndex)) {
-            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[0])) == paction) {
+            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[0])) == happening) {
                 producedEvent.NN = getNN(tableIndex);
                 producedEvent.EN = getEN(tableIndex);
                 return TRUE;
@@ -945,13 +945,13 @@ BOOL getProducedEvent(HAPPENING_T paction) {
 
 /**
  * Send a produced Event.
- * @param paction the produced action
+ * @param happening the produced action
  * @param on indicated whether an ON event or an OFF event should be sent
  * @return true if the event was successfully sent
  */
-BOOL sendProducedEvent(HAPPENING_T paction, BOOL on) {
-    unsigned char bit = paction & 0x7;
-    unsigned char byte = paction >> 3;
+BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
+    unsigned char bit = happening & 0x7;
+    unsigned char byte = happening >> 3;
     unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+byte));
     if (on) {
         status |= (1<<bit);
@@ -960,12 +960,12 @@ BOOL sendProducedEvent(HAPPENING_T paction, BOOL on) {
     }
     ee_write((WORD)(EE_AREQ_STATUS+byte), status);
     
-    if (getProducedEvent(paction)) {
+    if (getProducedEvent(happening)) {
         return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
     }
     // Didn't find a provisioned event so now check for programmed default events
     // The default events are application specific so call back into application space
-    if (getDefaultProducedEvent(paction)) {
+    if (getDefaultProducedEvent(happening)) {
         if (producedEvent.EN != 0)
             return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
         // lie and say we sent it
@@ -973,8 +973,8 @@ BOOL sendProducedEvent(HAPPENING_T paction, BOOL on) {
     }
 #ifdef DEBUG_PRODUCED_EVENTS
     // Didn't find a provisioned event so instead send a debug message containing the action
-    cbusMsg[d3] = paction & 0xFF;
-    cbusMsg[d4] = paction >> 8;
+    cbusMsg[d3] = happening & 0xFF;
+    cbusMsg[d4] = happening >> 8;
     cbusMsg[d5] = on;
     cbusMsg[d6] = status;
     cbusMsg[d7] = 0;
@@ -1027,9 +1027,9 @@ void rebuildHashtable(void) {
     int a;
 #ifdef PRODUCED_EVENTS
     // first initialise to nothing
-    HAPPENING_T paction;
-    for (paction=0; paction<NUM_HAPPENINGS; paction++) {
-        action2Event[paction] = NO_INDEX;
+    HAPPENING_T happening;
+    for (happening=0; happening<NUM_HAPPENINGS; happening++) {
+        happening2Event[happening] = NO_INDEX;
     }
 #endif
     for (hash=0; hash<HASH_LENGTH; hash++) {
@@ -1048,9 +1048,9 @@ void rebuildHashtable(void) {
             // ev[0] is used to store the Produced event's action
             a = getEv(tableIndex, 0);
             if (a >= 0) {
-                paction = a;
-                if ((paction >= HAPPENING_BASE) && (paction-HAPPENING_BASE< NUM_HAPPENINGS)) {
-                    action2Event[paction] = tableIndex;
+                happening = a;
+                if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
+                    happening2Event[happening-HAPPENING_BASE] = tableIndex;
                 }
             }
 #endif

@@ -46,9 +46,9 @@
 
 // At present this module exists purely to define the library version
 
-#define CBUS_LIB_VER 2i
-#define BETA    1
-#define WIP     1
+#define CBUS_LIB_VER    2j
+#define CBUS_LIB_BETA    0
+#define CBUS_LIB_WIP     0
 
 
 

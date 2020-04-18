@@ -257,7 +257,6 @@ void FLiMSWCheck( void )
          */
 #endif //TEST_MODE
     } // switch
-
 } // FLiMSWCheck
 
 
