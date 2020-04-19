@@ -426,7 +426,8 @@ Version history:
 #define	PF_COMBI		3
 #define PF_FLiM			4
 #define PF_BOOT			8
-#define PF_COE			16    // Module can consume its own events    
+#define PF_COE			16    // Module can consume its own events  
+#define PF_LRN          32
 
 // BUS type that module is connected to
 

@@ -181,9 +181,11 @@ void FLiMSWCheck( void )
                     flimState = fsSLiM;
                     SLiMRevert();
                     setSLiMLed();
+                    nodeID = 0;
                     SaveNodeDetails(nodeID, fsSLiM);
                 }
             } 
+#ifdef TEST_MODE
             else if (tickTimeSince(switchTime) > SET_TEST_MODE_TIME) 
             {
                 flimState = fsPressedTest;
@@ -191,6 +193,7 @@ void FLiMSWCheck( void )
                 startFLiMFlash(TRUE);       // Fast flash for test mode
                 
             }
+#endif // TEST_MODE
             break;
             
         case fsFLiMSetup:  // Button pressed whilst in setup mode
@@ -213,7 +216,7 @@ void FLiMSWCheck( void )
                     flimState = fsFLiMSetup;
             }
             break;
-            
+#ifdef TEST_MODE  
         case fsTestMode:   // Button was pressed whilst in test mode
             if (!FLiM_SW) 
             {
@@ -252,8 +255,8 @@ void FLiMSWCheck( void )
             SaveNodeDetails(nodeID, fsSLiM);
             break;
          */
+#endif //TEST_MODE
     } // switch
-
 } // FLiMSWCheck
 
 
@@ -512,6 +515,9 @@ void QNNrespond(void)
     cbusMsg[d3] = paramptr->params.manufacturer;
     cbusMsg[d4] = paramptr->params.module_id;
     cbusMsg[d5] = paramptr->params.module_flags;
+    if (flimState == fsFLiM) {
+        cbusMsg[d5] |= PF_FLiM;
+    }
     cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
 }
 
@@ -637,8 +643,11 @@ void doRqnp(void)
         cbusMsg[copyCounter] = paramptr->bytes[copyCounter-d1];
     }
     
+    // update the dynamic flags
     if (flimState == fsFLiM) 
         cbusMsg[d1+PAR_FLAGS-1] |= PF_FLiM;
+    if (flimState == fsFLiMLearn) 
+        cbusMsg[d1+PAR_FLAGS-1] |= (PF_LRN | PF_FLiM);
     
     cbusSendMsg(0, cbusMsg);
     

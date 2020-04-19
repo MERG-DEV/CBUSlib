@@ -115,7 +115,6 @@ MTYP_CANBIP_OUT	equ .53	; 16MHz 25k80 version of CANACC5
 MTYP_CANASTOP	equ .54	; DCC stop generator    
 MTYP_CANCSB	equ .55	; CANCMD with additional 3-4A booster on board
 MTYP_CANMAGOT	equ .56	; Magnet on Track detector
-MTYP_CANCOMPUTE	equ .57	; Event processing engin
 MTYP_CANACE16CMIO equ .57; 16 input equivaent to CANACE8C
 MTYP_CANPiNODE  equ  .58 ; CBUS module based on Raspberry Pi
 MTYP_CANDISP    equ  .59 ; 25K80 version of CANLED64 (IHart and MB)

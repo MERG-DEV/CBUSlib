@@ -93,6 +93,9 @@ typedef union
 
 
 // extern rom BYTE bootflag;
+    // Call back into the application to check if now is a good time to write the flash
+    // as the processor will be suspended for up to 2ms.
+extern unsigned char isSuitableTimeToWriteFlash(void);
 
 
 void initRomOps(void);

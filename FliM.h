@@ -182,10 +182,12 @@ enum FLiMStates
     fsFLiMLearn,        // In FLiM learn mode
     fsPressedFLiM,      // Pressed whilst in FLiM mode
     fsPressedSetup,     // Pressed during setup
+#ifdef TEST_MODE
     fsPressedTest,      // Pressed during test
     fsTestMode,         // Self test mode
     fsNextTest,         // Move on to next test
     fsTestInput,        // Input to current test mode
+#endif
     fsNoData = 0xFF     // Uninitialised memory indicates no FLiM data present
 };
 

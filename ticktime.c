@@ -98,6 +98,7 @@ volatile BYTE timerExtension1,timerExtension2;
 *                   4 bytes in PIC18.  PIC24/dsPIC version do not 
 *                   enable or require interrupts
 ********************************************************************/
+
 void initTicker(unsigned char priority)
 {
     BYTE divider, i;
@@ -168,10 +169,8 @@ DWORD tickGet(void)
     /* copy the byte extension */
     currentTime.byte.b2 = 0;
     currentTime.byte.b3 = 0;
-    
     /* disable the timer to prevent roll over of the lower 16 bits while before/after reading of the extension */
     TMR_IE = 0;
-
 #if 1
     do
     {
@@ -190,7 +189,6 @@ DWORD tickGet(void)
             timerExtension2++;
         }
     }
-
 #else
 
     
@@ -255,8 +253,9 @@ void tickISR(void)
                 /* there was a timer overflow */
                 TMR_IF = 0;
                 timerExtension1++;
-                if(timerExtension1 == 0)
+                if(timerExtension1 == 0) {
                     timerExtension2++;
+                }
             }
         }
     #endif
