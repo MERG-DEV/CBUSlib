@@ -499,13 +499,27 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
 
 // Internal functions
 
+/**
+ * return the current parameter flags
+ * @return parameter flags
+ */
+BYTE getParFlags() {
+    FLiMprmptr  paramptr = (FLiMprmptr)&FLiMparams;
+    paramptr->params.module_flags;
+    if (flimState == fsFLiMLearn) {
+        return(PF_LRN | PF_FLiM) | (paramptr->params.module_flags);
+    }
+    if (flimState == fsFLiM) {
+        return(PF_FLiM)|(paramptr->params.module_flags);
+    }
+    return 0;
+}
 
 /**
  *  QNN Respond.
  * Send response bytes to QNN query
  */
 void QNNrespond(void) 
-
 {
     FLiMprmptr  paramptr;
 
@@ -514,13 +528,9 @@ void QNNrespond(void)
     cbusMsg[d0] = OPC_PNN;
     cbusMsg[d3] = paramptr->params.manufacturer;
     cbusMsg[d4] = paramptr->params.module_id;
-    cbusMsg[d5] = paramptr->params.module_flags;
-    if (flimState == fsFLiM) {
-        cbusMsg[d5] |= PF_FLiM;
-    }
+    cbusMsg[d5] = getParFlags();
     cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
 }
-
 
 /**
  * Read one node parameter by index.
@@ -644,10 +654,7 @@ void doRqnp(void)
     }
     
     // update the dynamic flags
-    if (flimState == fsFLiM) 
-        cbusMsg[d1+PAR_FLAGS-1] |= PF_FLiM;
-    if (flimState == fsFLiMLearn) 
-        cbusMsg[d1+PAR_FLAGS-1] |= (PF_LRN | PF_FLiM);
+    cbusMsg[d1+PAR_FLAGS-1] = getParFlags();
     
     cbusSendMsg(0, cbusMsg);
     
@@ -714,7 +721,7 @@ void doSnn( BYTE *rx_ptr )
 
 /**
  * Send a CBUS error message.
- * @param code the error code - see cbusdefs8m.h
+ * @param code the error code - see cbusdefs.h
  */
 void doError(unsigned int code) 
 {
@@ -756,8 +763,10 @@ void SaveNodeDetails(WORD nodeID, enum FLiMStates flimState)
  */
 void doNnclr(void) 
 {
-    if (flimState == fsFLiMLearn) 
+    if (flimState == fsFLiMLearn) {
         clearAllEvents();
+        cbusSendOpcMyNN( 0, OPC_WRACK, cbusMsg);    // Ian added 2k
+    }
     else 
     {
             cbusMsg[d3] = CMDERR_NOT_LRN;

@@ -244,7 +244,7 @@ BOOL 	parseFLiMCmd(BYTE *rx_ptr);
 
 
 // Internal functions
-
+BYTE    getParFlags( void);
 void    QNNrespond( void );
 void 	doNNack( void );
 void	doRqnpn(BYTE idx);

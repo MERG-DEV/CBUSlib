@@ -494,6 +494,14 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
     // do we currently have an event
     tableIndex = findEvent(nodeNumber, eventNumber);
     if (tableIndex == NO_INDEX) {
+        // Ian - 2k check for special case. Don't create an entry for a NO_ACTION
+        // This is a solution to the problem of FCU filling the event table with unused
+        // 00 Actions. 
+        // It does not fix a much less frequent problem of releasing some of the 
+        // table entries when they are filled with No Action.
+        if (evVal == EV_FILL) {
+            return 0;
+        }
         error = 1;
         // didn't find the event so find an empty slot and create one
         for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
@@ -601,6 +609,15 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
                 return CMDERR_INVALID_EVENT;
             }
         } else {
+            // Ian - 2k check for special case. Don't create an entry for a NO_ACTION
+            // This is a solution to the problem of FCU filling the event table with unused
+            // 00 Actions. 
+            // It does not fix a much less frequent problem of releasing some of the 
+            // table entries when they are filled with No Action.
+            // don't add a new table slot just to store a NO_ACTION
+            if (evVal == EV_FILL) {
+                return 0;
+            }
             // find the next free entry
             for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
                 EventTableFlags nextF;
@@ -968,7 +985,7 @@ BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
     if (getDefaultProducedEvent(happening)) {
         if (producedEvent.EN != 0)
             return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
-        // lie and say we sent it
+        // lie and say we sent it. Ian changed in 2K as fix for SoD
         return TRUE;
     }
 #ifdef DEBUG_PRODUCED_EVENTS
@@ -980,7 +997,9 @@ BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
     cbusMsg[d7] = 0;
     return cbusSendOpcNN(ALL_CBUS, OPC_ACDAT, -1, cbusMsg);
 #else
-    return FALSE;
+    // Didn't find an event to send so lie and say we sent it otherwise the
+    // caller would retry in an infinite loop.
+    return TRUE;
 #endif
 }
 #endif
