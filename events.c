@@ -232,7 +232,7 @@ const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 #else
 //#pragma romdata myEvents=AT_EVENTS
 //volatile near rom EventTable eventTable[NUM_EVENTS];
-rom near EventTable * eventTable = (rom near EventTable*)AT_EVENTS;
+rom near EventTable * const eventTable = (rom near EventTable*)AT_EVENTS;
 #endif
 
 

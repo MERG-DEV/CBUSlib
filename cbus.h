@@ -62,7 +62,7 @@
 #define ALL_CBUS    0xFF
 
 extern WORD    nodeID;
-extern BYTE    cbusMsg[pktsize];
+extern BYTE    cbusMsg[sizeof(CanPacket)];
 
 
 void cbusInit( WORD initNodeID );

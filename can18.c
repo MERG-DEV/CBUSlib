@@ -104,7 +104,7 @@ void processEnumeration(void);
 BOOL checkIncomingPacket(CanPacket *ptr);
 BOOL insertIntoRxFifo( CanPacket *ptr );
 
-extern BYTE    cbusMsg[pktsize];
+extern BYTE    cbusMsg[sizeof(CanPacket)];
 
 
 //*******************************************************************************
