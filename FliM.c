@@ -366,11 +366,6 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
             doReqev((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4], rx_ptr[d5]);
             break;
             
-        case OPC_AREQ:
-            // Illicit a response indicating last event state
-            doAreq((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
-            break;
-            
         default:
             cmdProcessed = FALSE;
             break;
@@ -446,7 +441,24 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
             case OPC_ENUM:
                 doEnum(TRUE);
                 break;
+
+#ifdef AREQ_SUPPORT
+            case OPC_AREQ:
+                // Illicit a response indicating last long event state
+                // The NN supplied is actually the Long event's NN instead of the addressed module
+                // but these should be the same for the producer of the event.
+                doAreq((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
+                cmdProcessed = TRUE;
+                break;
                 
+            case OPC_ASRQ:
+                // Illicit a response indicating last short event state
+                // The NN supplied is actually the Long event's NN instead of the addressed module
+                // but these should be the same for the producer of the event.
+                doAreq(0 , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
+                cmdProcessed = TRUE;
+                break;
+#endif
             default:
                 cmdProcessed = FALSE;
                 break;
@@ -455,10 +467,11 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
 
     if (!cmdProcessed) 
     {   // Process any command not sent specifically to us that still needs action
-        if (rx_ptr[d0] == OPC_QNN) 
-        {
+        switch (rx_ptr[d0]) {
+        case OPC_QNN:
             QNNrespond();          // Respond to node query 	//  ??? update to do new spec response agreed
             cmdProcessed = TRUE;
+            break;
         }
     }
 

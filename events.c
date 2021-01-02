@@ -388,6 +388,8 @@ void doRqevn(void) {
     cbusSendOpcMyNN( 0, OPC_NUMEV, cbusMsg );
 } // doRqevn
 
+#ifdef AREQ_SUPPORT
+
 /**
  * Indicates a "request" event using the full event number of 4 bytes. (long event)
  * A request event is used to elicit a status response from a producer when it is required to
@@ -427,7 +429,7 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
         cbusSendMsg(ALL_CBUS, cbusMsg);
     }
 }
-
+#endif
 
 /**
  * Remove event.
@@ -967,6 +969,7 @@ BOOL getProducedEvent(HAPPENING_T happening) {
  * @return true if the event was successfully sent
  */
 BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
+#ifdef AREQ_SUPPORT
     unsigned char bit = happening & 0x7;
     unsigned char byte = happening >> 3;
     unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+byte));
@@ -976,6 +979,7 @@ BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
         status &= ~(1<<bit);
     }
     ee_write((WORD)(EE_AREQ_STATUS+byte), status);
+#endif
     
     if (getProducedEvent(happening)) {
         return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );

@@ -175,7 +175,9 @@ void 	doReval(BYTE tableIndex, BYTE evNum);
 void 	doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum);
 void 	doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 void 	doEvlrni(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
+#ifdef AREQ_SUPPORT
 void    doAreq(WORD nodeNumber, WORD eventNumber);
+#endif
 
 BYTE    findEvent( WORD eventNode, WORD eventNum);
 BYTE    findEventContinuation(BYTE eventIndex);

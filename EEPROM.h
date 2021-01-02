@@ -73,8 +73,12 @@ EEPROM.h - Definitions for EEPROM usage - part of CBUS libraries for PIC 18F
 #define EE_NODE_ID          ((WORD*)(EE_TOP-3))     // 16 bit value for node number. Size = 2
 #define EE_FLIM_MODE        ((BYTE*)(EE_TOP-4))     // Enumerated value for SLiM/FLiM mode
 #define EE_VERSION          ((BYTE*)(EE_TOP-5))     // Indicates if EEPROM needs initialising or upgrading
+#ifdef AREQ_SUPPORT
 #define EE_AREQ_STATUS      ((BYTE*)(EE_TOP-39))    // Event status bits. Size=34
 #define EE_APPLICATION      ((BYTE*)(EE_TOP-40))
-
+#else
+#define EE_APPLICATION      ((BYTE*)(EE_TOP-40))    // this could be moved but better for compatability if stays in same location
+#else
+#endif
 
 #endif	// __EEPROM_H
