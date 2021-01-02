@@ -417,14 +417,19 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
         unsigned char bit = happening & 0x7;
         unsigned char byte = happening >> 3;
         BOOL status = ee_read((WORD)(EE_AREQ_STATUS+byte)) & (1<<bit);
-        cbusMsg[d1] = nodeNumber >> 8;
-        cbusMsg[d2] = nodeNumber & 0xFF;
+        if (nodeNumber == 0) {
+            cbusMsg[d1] = nodeID >> 8;
+            cbusMsg[d2] = nodeID & 0xFF;
+        } else {
+            cbusMsg[d1] = nodeNumber >> 8;
+            cbusMsg[d2] = nodeNumber & 0xFF;
+        }
         cbusMsg[d3] = eventNumber >> 8;
         cbusMsg[d4] = eventNumber & 0xFF;
         if (status) {
-            cbusMsg[d0] = OPC_ARON;    
+            cbusMsg[d0] = nodeNumber == 0 ? OPC_ARSON : OPC_ARON;    
         } else {
-            cbusMsg[d0] = OPC_AROF;
+            cbusMsg[d0] = nodeNumber == 0 ? OPC_ARSOF : OPC_AROF;
         }
         cbusSendMsg(ALL_CBUS, cbusMsg);
     }
