@@ -254,7 +254,7 @@ void	doNvset(BYTE NVindex, BYTE NVvalue);
 void 	doRqnp(void);
 void    doRqmn(void);
 void 	doSnn( BYTE *rx_ptr );
-void	doError(unsigned int code);
+void	doError(BYTE code);
 BOOL	thisNN( BYTE *rx_ptr);
 void    SaveNodeDetails(WORD Node_id, enum FLiMStates flimState);
 WORD    readCPUType( void );

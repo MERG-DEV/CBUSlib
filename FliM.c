@@ -518,7 +518,7 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
  */
 BYTE getParFlags() {
     FLiMprmptr  paramptr = (FLiMprmptr)&FLiMparams;
-    paramptr->params.module_flags;
+
     if (flimState == fsFLiMLearn) {
         return(PF_LRN | PF_FLiM) | (paramptr->params.module_flags);
     }
@@ -736,7 +736,7 @@ void doSnn( BYTE *rx_ptr )
  * Send a CBUS error message.
  * @param code the error code - see cbusdefs.h
  */
-void doError(unsigned int code) 
+void doError(BYTE code) 
 {
 		cbusMsg[d0] = OPC_CMDERR;
 		cbusMsg[d3] = code;

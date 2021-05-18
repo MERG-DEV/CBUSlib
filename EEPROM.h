@@ -78,7 +78,6 @@ EEPROM.h - Definitions for EEPROM usage - part of CBUS libraries for PIC 18F
 #define EE_APPLICATION      ((BYTE*)(EE_TOP-40))
 #else
 #define EE_APPLICATION      ((BYTE*)(EE_TOP-40))    // this could be moved but better for compatability if stays in same location
-#else
 #endif
 
 #endif	// __EEPROM_H

@@ -947,7 +947,7 @@ BOOL getProducedEvent(HAPPENING_T happening) {
 #ifndef HASH_TABLE
     unsigned char tableIndex;
 #endif
-    if ((happening < HAPPENING_BASE) || (happening >= HAPPENING_BASE + NUM_HAPPENINGS)) return NULL;    // not a produced valid action
+    if ((happening < HAPPENING_BASE) || (happening >= HAPPENING_BASE + NUM_HAPPENINGS)) return FALSE;    // not a produced valid action
 #ifdef HASH_TABLE
     if (happening2Event[happening-HAPPENING_BASE] == NO_INDEX) return FALSE;
     producedEvent.NN = getNN(happening2Event[happening-HAPPENING_BASE]);
