@@ -147,19 +147,19 @@ extern void clearAction2Event(void);
 extern void clearChainTable(void);
 extern void eventsInit(void);
 extern void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
-extern void deleteActionRange(ACTION_T action, unsigned char number);
-extern void deleteHappeningRange(HAPPENING_T action, unsigned char number);
-extern BOOL getProducedEvent(HAPPENING_T action);
-extern BOOL getDefaultProducedEvent(HAPPENING_T paction);
-extern BOOL sendProducedEvent(HAPPENING_T paction, BOOL on);
 extern BYTE numEv(unsigned char tableIndex);
 extern int getEv(unsigned char tableIndex, unsigned char evNum);
 extern unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal);
 extern BYTE getEVs(unsigned char tableIndex);
 extern unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal, BOOL forceOwnNN);
 extern unsigned char removeEvent(WORD nodeNumber, WORD eventNumber);
+extern unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal);
+extern WORD getNN(unsigned char tableIndex);
+extern WORD getEN(unsigned char tableIndex);
+extern BOOL validStart(unsigned char tableIndex);
+extern void checkRemoveTableEntry(unsigned char tableIndex);
 
-
+extern rom near EventTable * eventTable;
 extern Event producedEvent;
 extern BYTE evs[EVperEVT];
 
@@ -175,9 +175,6 @@ void 	doReval(BYTE tableIndex, BYTE evNum);
 void 	doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum);
 void 	doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
 void 	doEvlrni(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal);
-#ifdef AREQ_SUPPORT
-void    doAreq(WORD nodeNumber, WORD eventNumber);
-#endif
 
 BYTE    findEvent( WORD eventNode, WORD eventNum);
 BYTE    findEventContinuation(BYTE eventIndex);

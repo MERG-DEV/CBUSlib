@@ -49,6 +49,9 @@
 #include "romops.h"
 #include "cbus.h"
 #include "can18.h"
+#ifdef AREQ_SUPPORT
+#include "happeningsActions.h"
+#endif
 
 extern BOOL validateNV(BYTE NVindex, BYTE oldValue, BYTE newValue);
 extern void actUponNVchange(BYTE NVindex, BYTE oldValue, BYTE NVvalue);
@@ -807,7 +810,7 @@ void doEvlrn(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal)
         return;
     }
     evNum--;    // convert CBUS numbering (starts at 1) to internal numbering)
-    error = addEvent(nodeNumber, eventNumber, evNum, evVal, FALSE);
+    error = APP_addEvent(nodeNumber, eventNumber, evNum, evVal, FALSE);
     if (error) 
     {
         // failed to write

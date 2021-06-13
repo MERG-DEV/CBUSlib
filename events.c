@@ -49,8 +49,9 @@
 	
  History for this file:
 	28/12/15	Pete Brownlow	- Factored out from FLiM module
-        25/2/16     Pete Brownlow   - coding in progress
-        23/5/17     Ian Hogg        - added support for produced events
+    25/2/16     Pete Brownlow   - coding in progress
+    23/5/17     Ian Hogg        - added support for produced events
+    05/06/21    Ian Hogg        - removed happeninga and actions so that this file just handles EV bytes
  * 
  * 
  * Currently written for:
@@ -232,7 +233,7 @@ const EventTable eventTable[NUM_EVENTS] @AT_EVENTS;
 #else
 //#pragma romdata myEvents=AT_EVENTS
 //volatile near rom EventTable eventTable[NUM_EVENTS];
-rom near EventTable * const eventTable = (rom near EventTable*)AT_EVENTS;
+rom near EventTable * eventTable = (rom near EventTable*)AT_EVENTS;
 #endif
 
 
@@ -388,53 +389,7 @@ void doRqevn(void) {
     cbusSendOpcMyNN( 0, OPC_NUMEV, cbusMsg );
 } // doRqevn
 
-#ifdef AREQ_SUPPORT
 
-/**
- * Indicates a "request" event using the full event number of 4 bytes. (long event)
- * A request event is used to elicit a status response from a producer when it is required to
- * know the ?state? of the producer without producing an ON or OFF event and to trigger an
- * event from a "combi" node.
- * Only accessible in Setup mode.
- * Does not support default events i.e. those not stored in the event table.
- * @param nodeNumber
- * @param eventNumber
- */
-void doAreq(WORD nodeNumber, WORD eventNumber) {
-    HAPPENING_T happening;
-    int ev0;
-    
-    unsigned char tableIndex = findEvent(nodeNumber, eventNumber);
-    if (tableIndex == NO_INDEX) return;
-    // found the matching event
-    ev0 = getEv(tableIndex, 0); // get the Happening
-    if (ev0 < 0) {
-        doError(-ev0);
-        return;
-    }
-    happening = ev0;
-    if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
-        unsigned char bit = happening & 0x7;
-        unsigned char byte = happening >> 3;
-        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+byte)) & (1<<bit);
-        if (nodeNumber == 0) {
-            cbusMsg[d1] = nodeID >> 8;
-            cbusMsg[d2] = nodeID & 0xFF;
-        } else {
-            cbusMsg[d1] = nodeNumber >> 8;
-            cbusMsg[d2] = nodeNumber & 0xFF;
-        }
-        cbusMsg[d3] = eventNumber >> 8;
-        cbusMsg[d4] = eventNumber & 0xFF;
-        if (status) {
-            cbusMsg[d0] = nodeNumber == 0 ? OPC_ARSON : OPC_ARON;    
-        } else {
-            cbusMsg[d0] = nodeNumber == 0 ? OPC_ARSOF : OPC_AROF;
-        }
-        cbusSendMsg(ALL_CBUS, cbusMsg);
-    }
-}
-#endif
 
 /**
  * Remove event.
@@ -484,7 +439,7 @@ unsigned char removeTableEntry(unsigned char tableIndex) {
 }
 /**
  * Add an event/EV.
- * Teach or reteach an event associated with an action. 
+ * Teach or re-teach an EV for an event. 
  * This may (optionally) need to create a new event and then optionally
  * create additional chained entries. All newly allocated table entries need
  * to be initialised.
@@ -830,7 +785,7 @@ BOOL parseCbusEvent(BYTE * msg) {
 } 
  
 /*
- * The CBUS spec uses "EN#" as an index into an "Event Table". This si very implementation
+ * The CBUS spec uses "EN#" as an index into an "Event Table". This is very implementation
  * specific. In this implementation we do actually have an event table behind the scenes
  * so we can have an EN#. However we may also wish to provide some kind of mapping between
  * the CBUS index and out actual implementation specific index. These functions allow us
@@ -858,60 +813,6 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
     return tableIndex+1;
 }
 
-/**
- * Delete all occurrences of the consumer action.
- * @param action
- */
-void deleteActionRange(ACTION_T action, unsigned char number) {
-    unsigned char tableIndex;
-    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-        if (validStart(tableIndex)) {
-            BOOL updated = FALSE;
-            unsigned char e;
-            if (getEVs(tableIndex)) {
-                return;
-            }
-                
-            for (e=1; e<EVperEVT; e++) {
-                if ((evs[e] >= action) && (evs[e] < action+number)) {
-                    writeEv(tableIndex, e, EV_FILL);
-                    updated = TRUE;
-                }
-            }
-            if (updated) {
-                checkRemoveTableEntry(tableIndex);
-            }
-        }
-    }
-    flushFlashImage();
-#ifdef HASH_TABLE
-    rebuildHashtable();                
-#endif
-}
-
-/**
- * Delete all occurrences of the Happening.
- * @param action
- */
-void deleteHappeningRange(HAPPENING_T action, unsigned char number) {
-    unsigned char tableIndex;
-    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-        if ( validStart(tableIndex)) {
-            EventTableFlags f;
-            unsigned char pa;
-            f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-            pa = readFlashBlock((WORD)(&(eventTable[tableIndex].evs[0])));
-            if ((pa >= action) && (pa < action+number)) {
-                writeEv(tableIndex, 0, EV_FILL);
-                checkRemoveTableEntry(tableIndex);
-            }                
-        }
-    }
-    flushFlashImage();
-#ifdef HASH_TABLE
-    rebuildHashtable();                
-#endif
-}
 
 /**
  * Check to see if any event entries can be removed.
@@ -932,88 +833,6 @@ void checkRemoveTableEntry(unsigned char tableIndex) {
         removeTableEntry(tableIndex);
     }
 }
-
-#ifdef PRODUCED_EVENTS
-/**
- * Get the Produced Event to transmit for the specified action.
- * If the same produced action has been provisioned for more than 1 event
- * only the first provisioned event will be returned.
- * 
- * @param action the produced action
- * @return TRUE if the produced event is found
- */ 
-Event producedEvent;
-BOOL getProducedEvent(HAPPENING_T happening) {
-#ifndef HASH_TABLE
-    unsigned char tableIndex;
-#endif
-    if ((happening < HAPPENING_BASE) || (happening >= HAPPENING_BASE + NUM_HAPPENINGS)) return FALSE;    // not a produced valid action
-#ifdef HASH_TABLE
-    if (happening2Event[happening-HAPPENING_BASE] == NO_INDEX) return FALSE;
-    producedEvent.NN = getNN(happening2Event[happening-HAPPENING_BASE]);
-    producedEvent.EN = getEN(happening2Event[happening-HAPPENING_BASE]);
-    return TRUE;
-#else
-    for (tableIndex=0; tableIndex < NUM_EVENTS; tableIndex++) {
-        if (validStart(tableIndex)) {
-            if (readFlashBlock((WORD)(& eventTable[tableIndex].evs[0])) == happening) {
-                producedEvent.NN = getNN(tableIndex);
-                producedEvent.EN = getEN(tableIndex);
-                return TRUE;
-            }
-        }
-    }
-    return NULL;
-#endif
-}
-
-/**
- * Send a produced Event.
- * @param happening the produced action
- * @param on indicated whether an ON event or an OFF event should be sent
- * @return true if the event was successfully sent
- */
-BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
-#ifdef AREQ_SUPPORT
-    unsigned char bit = happening & 0x7;
-    unsigned char byte = happening >> 3;
-    unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+byte));
-    if (on) {
-        status |= (1<<bit);
-    } else {
-        status &= ~(1<<bit);
-    }
-    ee_write((WORD)(EE_AREQ_STATUS+byte), status);
-#endif
-    
-    if (getProducedEvent(happening)) {
-        return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
-    }
-    // Didn't find a provisioned event so now check for programmed default events
-    // The default events are application specific so call back into application space
-    if (getDefaultProducedEvent(happening)) {
-        if (producedEvent.EN != 0)
-            return cbusSendEvent( 0, producedEvent.NN, producedEvent.EN, on );
-        // lie and say we sent it. Ian changed in 2K as fix for SoD
-        return TRUE;
-    }
-#ifdef DEBUG_PRODUCED_EVENTS
-    // Didn't find a provisioned event so instead send a debug message containing the action
-    cbusMsg[d3] = happening & 0xFF;
-    cbusMsg[d4] = happening >> 8;
-    cbusMsg[d5] = on;
-    cbusMsg[d6] = status;
-    cbusMsg[d7] = 0;
-    return cbusSendOpcNN(ALL_CBUS, OPC_ACDAT, -1, cbusMsg);
-#else
-    // Didn't find an event to send so lie and say we sent it otherwise the
-    // caller would retry in an infinite loop.
-    return TRUE;
-#endif
-}
-#endif
-
-
 
 #ifdef HASH_TABLE
 /**
