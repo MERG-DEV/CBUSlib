@@ -84,7 +84,7 @@ typedef union
 {
     struct
     {
-        unsigned char maxEvUsedPlusOne:4;  // How many of the EVs in this row are used. Only valid if continued is clear
+        unsigned char eVsUsed:4;  // How many of the EVs in this row are used. Only valid if continued is clear
         BOOL    continued:1;    // there is another entry 
         BOOL    continuation:1; // Continuation of previous event entry
         BOOL    forceOwnNN:1;   // Ignore the specified NN and use module's own NN

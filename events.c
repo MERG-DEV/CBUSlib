@@ -140,7 +140,7 @@ extern void processEvent(unsigned char action, BYTE * msg);
  * the NN/EN of the event.
  * 
  * The EventTableFlags have the following entries:
- * maxEvUsedPlusOne                4 bits
+ * eVsUsed                4 bits
  * continued                       1 bit
  * forceOwnNN                      1 bit
  * freeEntry                       1 bit
@@ -157,7 +157,7 @@ extern void processEvent(unsigned char action, BYTE * msg);
  * The 'freeEntry' flag indicates that this entry in the EventTable is currently 
  * unused.
  * 
- * The 'maxEvUsedPlusOne' field records how many of the evs contain valid data. 
+ * The 'eVsUsed' field records how many of the evs contain valid data. 
  * It is only applicable for the last entry in the chain since all EVs less than 
  * this are assumed to contain valid data. Since this field is only 4 bits long 
  * this places a limit on the EVENT_TABLE_WIDTH of 15.
@@ -168,36 +168,36 @@ extern void processEvent(unsigned char action, BYTE * msg);
  * 
  * At the outset there is an empty table. All rows have the 'freeEntry' bit set:
  * 
- * index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
- * 0       0                       0               0               1               0       0:0     0,0,0,0
- * 1       0                       0               0               1               0       0:0     0,0,0,0
- * 2       0                       0               0               1               0       0:0     0,0,0,0
- * 3       0                       0               0               1               0       0:0     0,0,0,0
+ * index   eVsUsed        continued       forceOwnNN      freeEntry       next    Event   evs[]
+ * 0       0              0               0               1               0       0:0     0,0,0,0
+ * 1       0              0               0               1               0       0:0     0,0,0,0
+ * 2       0              0               0               1               0       0:0     0,0,0,0
+ * 3       0              0               0               1               0       0:0     0,0,0,0
  *
  * Now if an EV of an event is set (probably using EVLRN CBUS command) then the 
  * table is updated. Let's set EV#1 for event 256:101 to the value 99:
  * 
- * index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
- * 0       1                       0               0               0               0       256:101 99,0,0,0
- * 1       0                       0               0               1               0       0:0     0,0,0,0
- * 2       0                       0               0               1               0       0:0     0,0,0,0
- * 3       0                       0               0               1               0       0:0     0,0,0,0
+ * index   eVsUsed        continued       forceOwnNN      freeEntry       next    Event   evs[]
+ * 0       1              0               0               0               0       256:101 99,0,0,0
+ * 1       0              0               0               1               0       0:0     0,0,0,0
+ * 2       0              0               0               1               0       0:0     0,0,0,0
+ * 3       0              0               0               1               0       0:0     0,0,0,0
  * 
  * Now let's set EV#2 of event 256:102 to 15:
  * 
- * index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
- * 0       1                       0               0               0               0       256:101 99,0,0,0
- * 1       2                       0               0               0               0       256:102 0,15,0,0
- * 2       0                       0               0               1               0       0:0     0,0,0,0
- * 3       0                       0               0               1               0       0:0     0,0,0,0
+ * index   eVsUsed        continued       forceOwnNN      freeEntry       next    Event   evs[]
+ * 0       1              0               0               0               0       256:101 99,0,0,0
+ * 1       2              0               0               0               0       256:102 0,15,0,0
+ * 2       0              0               0               1               0       0:0     0,0,0,0
+ * 3       0              0               0               1               0       0:0     0,0,0,0
  * 
  * Now let's set EV#8 of event 256:101 to 29:
  * 
- * index   maxEvUsedPlusOne        continued       forceOwnNN      freeEntry       next    Event   evs[]
- * 0       1                       1               0               0               0       256:101 99,0,0,0
- * 1       2                       0               0               0               0       256:102 0,15,0,0
- * 2       4                       0               0               0               0       0:0     0,0,0,29
- * 3       0                       0               0               1               0       0:0     0,0,0,0
+ * index   eVsUsed        continued       forceOwnNN      freeEntry       next    Event   evs[]
+ * 0       1              1               0               0               0       256:101 99,0,0,0
+ * 1       2              0               0               0               0       256:102 0,15,0,0
+ * 2       4              0               0               0               0       0:0     0,0,0,29
+ * 3       0              0               0               1               0       0:0     0,0,0,0
  * 
  * To perform the speedy lookup of EVs given an Event a hash table can be used by 
  * defining HASH_TABLE. The hash table is stored in 
@@ -612,8 +612,8 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
     writeFlashByte((BYTE*)&(eventTable[tableIndex].evs[evNum]), evVal);
     // update the number per row count
     f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
-    if (f.maxEvUsedPlusOne <= evNum) {
-        f.maxEvUsedPlusOne = evNum+1;
+    if (f.eVsUsed <= evNum) {
+        f.eVsUsed = evNum+1;
         writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
     }
     // If we are deleting then see if we can remove all
@@ -651,7 +651,7 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
         f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
         evNum -= EVENT_TABLE_WIDTH;
     }
-    if (evNum+1 > f.maxEvUsedPlusOne) {
+    if (evNum+1 > f.eVsUsed) {
         return -CMDERR_NO_EV;
     }
     // it is within this entry
@@ -679,8 +679,7 @@ BYTE numEv(unsigned char tableIndex) {
         f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
         num += EVENT_TABLE_WIDTH;
     }
-    num += f.maxEvUsedPlusOne;
-    num--;
+    num += f.eVsUsed;
     return num;
 }
 
