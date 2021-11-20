@@ -316,8 +316,8 @@ _CANInit:
 	setf	EEADRH
 	bsf     EECON1, RD	; Read the control code
 	nop
+	
 	incfsz  EEDATA, W
-
 	goto	RESET_VECT   ; Jump to the application if not in boot mode
 
 	clrf	_bootSpcCmd 	; Reset the special command register

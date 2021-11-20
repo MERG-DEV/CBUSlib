@@ -1,4 +1,4 @@
-/*
+/* 
  romops.c - EEPROM and FLASH ROM routines - part of CBUS libraries for PIC 18F
 
 
@@ -407,6 +407,8 @@ BYTE ee_read(WORD addr) {
  * @param data the data to be written
  */
 void ee_write(WORD addr, BYTE data) {
+    BYTE interruptEnabled;
+    interruptEnabled = geti(); // store current global interrupt state
     do {
         SET_EADDRH(addr >> 8);      // High byte of address to write
         EEADR = addr & 0xFF;       	/* Low byte of Data Memory Address to write */
@@ -426,7 +428,9 @@ void ee_write(WORD addr, BYTE data) {
         _asm nop
          nop _endasm
 #endif
-        ei();         /* Enable Interrupts */
+        if (interruptEnabled) { // Only enable interrupts if they were enabled at function entry
+            ei();         /* Enable Interrupts */
+        }
         while (!EEIF)
             ;
         EEIF = 0;
