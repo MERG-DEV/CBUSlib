@@ -69,6 +69,9 @@ unsigned char timedResponseStep;
 extern BOOL sendProducedEvent(HAPPENING_T happening, BOOL on);
 extern unsigned char APP_doSOD(unsigned char step);
 
+/**
+ * Initialise the timedResponse functionality.
+ */
 void initTimedResponse(void) {
     timedResponse = TIMED_RESPONSE_NONE;
 }
