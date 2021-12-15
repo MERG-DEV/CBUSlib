@@ -158,6 +158,7 @@ extern WORD getNN(unsigned char tableIndex);
 extern WORD getEN(unsigned char tableIndex);
 extern BOOL validStart(unsigned char tableIndex);
 extern void checkRemoveTableEntry(unsigned char tableIndex);
+extern BYTE tableIndexToEvtIdx(BYTE tableIndex);
 
 extern rom near EventTable * eventTable;
 extern Event producedEvent;

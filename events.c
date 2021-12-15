@@ -67,6 +67,9 @@
 #include "events.h"
 #include "cbus.h"
 #include "romops.h"
+#ifdef TIMED_RESPONSE
+#include "timedResponse.h"
+#endif
 
 
 // forward references
@@ -84,35 +87,30 @@ extern void processEvent(unsigned char action, BYTE * msg);
 
 //Events are stored in Flash just below NVs
 
-/*
- * The Event storage.
- */
-
-// EVENTS
-//
-// The events are stored as a hash table in flash (flash is faster to read than EEPROM)
-// There can be up to 255 events. Since the address in the hash table will be 16 bits, and the
-// address of the whole event table can also be covered by a 16 bit address, there is no
-// advantage in having a separate hashed index table pointing to the actual event table.
-// Therefore the hashing algorithm produces the index into the actual event table, which
-// can be shifted to give the address - each event table entry is 16 bytes. After the event
-// number and hash table overhead, this allows up to 10 EVs per event.
-//
-// This generic FLiM code needs no knowledge of specific EV usage except that EV#1 is 
-// to define the Produced events (if the PRODUCED_EVENTS definition is defined).
-//
-// BEWARE must set NUM_EVENTS to a maximum of 255!
-// If set to 256 then the for (unsigned char i=0; i<NUM_EVENTS; i++) loops will never end
-// as they use an unsigned char instead of int for space/performance reasons.
-//
-// BEWARE Concurrency: The functions which use the eventTable and hash/lookup must not be used
-// whilst there is a chance of the functions which modify the eventTable of RAM based 
-// hash/lookup tables being called. These functions should therefore either be called
-// from the same thread or disable interrupts. 
-//
-// define HASH_TABLE to use event hash tables for fast access - at the expense of some RAM
-
-/*
+/** Event handling.
+ *
+ * The events are stored as a hash table in flash (flash is faster to read than EEPROM)
+ * There can be up to 255 events. Since the address in the hash table will be 16 bits, and the
+ * address of the whole event table can also be covered by a 16 bit address, there is no
+ * advantage in having a separate hashed index table pointing to the actual event table.
+ * Therefore the hashing algorithm produces the index into the actual event table, which
+ * can be shifted to give the address - each event table entry is 16 bytes. After the event
+ * number and hash table overhead, this allows up to 10 EVs per event.
+ *
+ * This generic FLiM code needs no knowledge of specific EV usage except that EV#1 is 
+ * to define the Produced events (if the PRODUCED_EVENTS definition is defined).
+ *
+ * BEWARE must set NUM_EVENTS to a maximum of 255!
+ * If set to 256 then the for (unsigned char i=0; i<NUM_EVENTS; i++) loops will never end
+ * as they use an unsigned char instead of int for space/performance reasons.
+ *
+ * BEWARE Concurrency: The functions which use the eventTable and hash/lookup must not be used
+ * whilst there is a chance of the functions which modify the eventTable of RAM based 
+ * hash/lookup tables being called. These functions should therefore either be called
+ * from the same thread or disable interrupts. 
+ *
+ * define HASH_TABLE to use event hash tables for fast access - at the expense of some RAM
+ *
  * The code in event.c is responsible for storing EVs for each defined event and 
  * also for allowing speedy lookup of EVs given an Event or finding an Event given 
  * a Happening which is stored in EV#1.
@@ -276,6 +274,12 @@ void eventsInit( void ) {
 #endif
 } //eventsInit
 
+/**
+ * Checks if the specified index is the start of a set of linked entries.
+ * 
+ * @param tableIndex the index into eventtable to check
+ * @return true if the specified index is the start of a linked set
+ */
 BOOL validStart(unsigned char tableIndex) {
     EventTableFlags f;
 #ifdef SAFETY
@@ -289,7 +293,9 @@ BOOL validStart(unsigned char tableIndex) {
     }
 }
 
-
+/**
+ * Removes all events including default events.
+ */
 void clearAllEvents(void) {
     unsigned char tableIndex;
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
@@ -322,7 +328,20 @@ void doNnevn(void) {
     cbusSendOpcMyNN( 0, OPC_EVNLF, cbusMsg );
 } // doNnevn
 
-// Read all stored events
+#ifdef TIMED_RESPONSE
+/**
+ * Do the NERD. 
+ * This sets things up so that timedResponse will do the right stuff.
+ */
+void doNerd(void) {
+    timedResponse = TIMED_RESPONSE_NERD;
+    timedResponseStep = 0;
+}
+#else
+/**
+ * Handle a NERD request by returning a response for each event.
+ * 
+ */
 void doNerd(void) {
     unsigned char tableIndex;
     for (tableIndex=0; tableIndex<NUM_EVENTS; tableIndex++) {
@@ -342,8 +361,13 @@ void doNerd(void) {
         }   
     }
 } // doNerd
+#endif
 
-// Read a single stored event by index
+/**
+ * Read a single stored event by index and return a ENRSP response.
+ * 
+ * @param index index into event table
+ */
 void doNenrd(unsigned char index) {
     unsigned char tableIndex;
     WORD n;
@@ -371,7 +395,7 @@ void doNenrd(unsigned char index) {
 } // doNenrd
 
 /**
- * Read number of stored events
+ * Read number of stored events.
  * This returns the number of events which is different to the number of used slots 
  * in the Event table.
  */
@@ -393,6 +417,7 @@ void doRqevn(void) {
 
 /**
  * Remove event.
+ * 
  * @param nodeNumber
  * @param eventNumber
  * @return error or 0 for success
@@ -443,6 +468,7 @@ unsigned char removeTableEntry(unsigned char tableIndex) {
  * This may (optionally) need to create a new event and then optionally
  * create additional chained entries. All newly allocated table entries need
  * to be initialised.
+ * 
  * @param nodeNumber
  * @param eventNumber
  * @param evNum the EV index (starts at 0 for the produced action)
@@ -508,7 +534,8 @@ unsigned char addEvent(WORD nodeNumber, WORD eventNumber, BYTE evNum, BYTE evVal
 }
 
 /**
- * Find an event in the eventTable and return it's index
+ * Find an event in the eventTable and return it's index.
+ * 
  * @param nodeNumber
  * @param eventNumber
  * @return index into eventTable or NO_INDEX if not present
@@ -546,7 +573,8 @@ unsigned char findEvent(WORD nodeNumber, WORD eventNumber) {
 }
 
 /**
- * Write an EV value to an event
+ * Write an EV value to an event.
+ * 
  * @param tableIndex the index into the event table
  * @param evNum the EV number (0 for the produced action)
  * @param evVal
@@ -625,6 +653,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
  
 /**
  * Return an EV value for an event.
+ * 
  * @param tableIndex the index of the start of an event
  * @param evNum ev number starts at 0 (produced)
  * @return the ev value or -error code if error
@@ -660,6 +689,7 @@ int getEv(unsigned char tableIndex, unsigned char evNum) {
 
 /**
  * Return the number of EVs for an event.
+ * 
  * @param tableIndex the index of the start of an event
  * @return the number of EVs
  */
@@ -685,6 +715,7 @@ BYTE numEv(unsigned char tableIndex) {
 
 /**
  * Return all the EV values for an event. EVs are put into the global evs array.
+ * 
  * @param tableIndex the index of the start of an event
  * @return the error code or 0 for no error
  */
@@ -721,6 +752,7 @@ BYTE getEVs(unsigned char tableIndex) {
 /**
  * Return the NN for an event.
  * Getter so that the application code can obtain information about the event.
+ * 
  * @param tableIndex the index of the start of an event
  * @return the Node Number
  */
@@ -741,6 +773,7 @@ WORD getNN(unsigned char tableIndex) {
 /**
  * Return the EN for an event.
  * Getter so that the application code can obtain information about the event.
+ * 
  * @param tableIndex the index of the start of an event
  * @return the Event Number
  */
@@ -756,6 +789,7 @@ WORD getEN(unsigned char tableIndex) {
 
 /**
  * This Consumes a CBUS event if it has been provisioned.
+ * 
  * @param msg
  * @return 
  */
@@ -783,7 +817,8 @@ BOOL parseCbusEvent(BYTE * msg) {
     return FALSE;
 } 
  
-/*
+/**
+ * Convert an evtIdx from CBUS to an index into the eventTable.
  * The CBUS spec uses "EN#" as an index into an "Event Table". This is very implementation
  * specific. In this implementation we do actually have an event table behind the scenes
  * so we can have an EN#. However we may also wish to provide some kind of mapping between
@@ -791,10 +826,7 @@ BOOL parseCbusEvent(BYTE * msg) {
  * to have a mapping.
  * I currently I just adjust by 1 since the CBUS index starts at 1 whilst the eventTable
  * index starts at 0.
- */
-/**
- * Convert an evtIdx from CBUS to an index into the eventTable.
- * This implements a 1:1 mapping 
+ * 
  * @param evtIdx
  * @return an index into eventTable
  */
@@ -804,7 +836,7 @@ BYTE evtIdxToTableIndex(BYTE evtIdx) {
 
 /**
  * Convert an internal tableIndex into a CBUS EvtIdx.
- * This implements a 1:1 mapping 
+ * 
  * @param tableIndex index into the eventTable
  * @return an CBUS EvtIdx
  */
@@ -815,6 +847,7 @@ BYTE tableIndexToEvtIdx(BYTE tableIndex) {
 
 /**
  * Check to see if any event entries can be removed.
+ * 
  * @param tableIndex
  */
 void checkRemoveTableEntry(unsigned char tableIndex) {

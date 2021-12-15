@@ -47,6 +47,9 @@
      Ported to XC8 compiler by Ian Hogg
 
 */
+/**
+ * Routines to support CBUS over CAN or MIWI.
+ */
 
 #include "can18.h"
 
@@ -63,8 +66,11 @@ BYTE    cbusMsg[sizeof(CanPacket)]; // Global buffer for fast access to CBUS pac
 #endif
 
 
-// Initialise CBUS  - Note: CANID only used when bus type is CAN
-
+/**
+ *  Initialise CBUS  - Note: CANID only used when bus type is CAN.
+ * 
+ * @param initNodeID the CANID
+ */
 void cbusInit( WORD initNodeID  )
 {
     
@@ -89,7 +95,13 @@ void cbusInit( WORD initNodeID  )
 }
 
 
-// Check for CBUS message received, return TRUE with message in msg buffer if so
+/**
+ * Check for CBUS message received.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param msg location of received message
+ * @return TRUE with message in msg buffer if a message has been received
+ */
 BOOL cbusMsgReceived( BYTE cbusNum, BYTE *msg )
 {
 
@@ -110,8 +122,12 @@ BOOL cbusMsgReceived( BYTE cbusNum, BYTE *msg )
     return FALSE;
 }
 
-/*
+/**
  * Send single byte frame - opcode only
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param opc the CBUS opcode to be sent
+ * @return true if sent ok
  */
 BOOL cbusSendSingleOpc(BYTE cbusNum, BYTE opc )
 {
@@ -121,9 +137,14 @@ BOOL cbusSendSingleOpc(BYTE cbusNum, BYTE opc )
 
 
 
-/*
+/**
  * Send opcode plus our node number, can be used to send simple 3-byte frame, or may have further 
- * bytes prepared in the buffer by the caller
+ * bytes prepared in the buffer by the caller.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param opc the CBUS opcode to be sent
+ * @param msg the CBUS message to be sent
+ * @return true if sent ok
  */
 BOOL cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
 {
@@ -132,9 +153,15 @@ BOOL cbusSendOpcMyNN(BYTE cbusNum, BYTE opc, BYTE *msg)
 }
 
 
-/*
+/**
  * Send opcode plus specified node number, can be used to send simple 3-byte frame, or may have further 
- * bytes prepared in the buffer by the caller
+ * bytes prepared in the buffer by the caller.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param opc the CBUS opcode to be sent
+ * @param nodeID the CBUS node number to be sent
+ * @param msg the CBUS message to be sent
+ * @return true if sent ok
  */
 BOOL cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD nodeID, BYTE *msg)
 {
@@ -143,8 +170,14 @@ BOOL cbusSendOpcNN(BYTE cbusNum, BYTE opc, WORD nodeID, BYTE *msg)
 }
 
 
-// Send long CBUS event, no data, using our node number
-
+/**
+ *  Send long CBUS event, no data, using our node number.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param eventNum the CBUS event EN
+ * @param onEvent if true ON event otherwise OFF event is sent 
+ * @return true if sent ok
+ */
 BOOL cbusSendMyEvent( BYTE cbusNum, WORD eventNum, BOOL onEvent )
 {
     BYTE    msg[d0+4];
@@ -152,10 +185,16 @@ BOOL cbusSendMyEvent( BYTE cbusNum, WORD eventNum, BOOL onEvent )
     return cbusSendEventWithData( cbusNum, -1, eventNum, onEvent, msg, 0);
 }
 
-// Send CBUS event, no data, using specified node number.
-// Send short event if eventNode is 0
-
-
+/**
+ * Send CBUS event, no data, using specified node number.
+ * Send short event if eventNode is 0
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param eventNode the event node number. 0 for a short event
+ * @param eventNum the CBUS event EN
+ * @param onEvent if true ON event otherwise OFF event is sent 
+ * @return true if sent ok
+ */
 BOOL cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent )
 {
     BYTE    msg[d0+4];
@@ -165,7 +204,17 @@ BOOL cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent )
 
 
 
-// Send CBUS event with optional data bytes - works out appropriate opcode
+/**
+ * Send CBUS event with optional data bytes - works out appropriate opcode.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param eventNode the event node number. 0 for a short event
+ * @param eventNum the CBUS event EN
+ * @param onEvent if true ON event otherwise OFF event is sent 
+ * @param msg the CBUS message data byes to be sent
+ * @param the number of data bytes to be sent
+ * @return true if sent ok
+ */
 BOOL cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent, BYTE *msg, BYTE datalen )
 {
     BOOL ret;
@@ -196,8 +245,12 @@ BOOL cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL on
     return ret;
 } // cbusSendEventWithData
 
-/*
- * Send a CBUS message, putting our Node Number in first two data bytes
+/**
+ * Send a CBUS message, putting our Node Number in first two message bytes
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param msg the CBUS message to be sent
+ * @return true if sent ok
  */
 BOOL cbusSendMsgMyNN(BYTE cbusNum, BYTE *msg)
 {
@@ -206,8 +259,13 @@ BOOL cbusSendMsgMyNN(BYTE cbusNum, BYTE *msg)
     return cbusSendMsg(cbusNum, msg);
 }
 
-/*
- * Send a CBUS message, work out node Number and put it in first two data bytes
+/**
+ * Send a CBUS message, work out node Number and put it in first two message bytes.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param eventNode Bytes added to message after our node Number
+ * @param msg the CBUS message to be sent
+ * @return true if sent ok
  */
 BOOL cbusSendMsgNN(BYTE cbusNum, WORD eventNode, BYTE *msg)
 {
@@ -220,10 +278,14 @@ BOOL cbusSendMsgNN(BYTE cbusNum, WORD eventNode, BYTE *msg)
 }
 
 
-/*
+/**
  * Send a CBUS message where data bytes have already been loaded
  * Works out data length from opcode
  * If cbusNum is set to 0xFF, transmits on all defined CBUS connections
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param msg the CBUS message to be sent
+ * @return true if sent ok
  */
 BOOL cbusSendMsg(BYTE cbusNum, BYTE *msg)
 {
@@ -244,8 +306,12 @@ BOOL cbusSendMsg(BYTE cbusNum, BYTE *msg)
 }
 
 
-/*
- * Send a debug message with 5 data bytes
+/**
+ * Send a debug message with 5 data bytes.
+ * 
+ * @param cbusNum whether CAN or MIWI bus is to be checked.
+ * @param nodeID The bytes to be be sent in the NN position
+ * @param debug_data the CBUS message to be sent
  */
 void cbusSendDataEvent(BYTE cbusNum, WORD nodeID, BYTE *debug_data )
 {
