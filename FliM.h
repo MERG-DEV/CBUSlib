@@ -105,7 +105,7 @@ typedef	union
     BYTE        bytes[sizeof(ParamVals)];
 } FLiMParameters;
 
-#ifdef __XC8__
+#ifdef __XC8
 typedef ParamVals       *prmvalptr;
 typedef FLiMParameters  *FLiMprmptr;
 #else

@@ -684,7 +684,7 @@ void doRqmn(void)
 {
     BYTE        copyCounter, padCounter;
 #ifdef __XC8__
-    char*   namptr;
+    const char*   namptr;
 #else
     rom char*   namptr;
 #endif
@@ -693,7 +693,7 @@ void doRqmn(void)
     
     namadr = FCUparams.module_type_name;
 #ifdef __XC8__
-    namptr = (char*)namadr;
+    namptr = (const char*)namadr;
 #else
     namptr = (rom char*)namadr;
 #endif

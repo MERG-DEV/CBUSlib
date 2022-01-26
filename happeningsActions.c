@@ -108,15 +108,15 @@ BOOL getProducedEvent(HAPPENING_T happening) {
  */
 BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
 #ifdef AREQ_SUPPORT
-    unsigned char bit = happening & 0x7;
-    unsigned char byte = happening >> 3;
-    unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+byte));
+    unsigned char thisBit = (unsigned char)(happening & 0x7);
+    unsigned char thisByte = (unsigned char)(happening >> 3);
+    unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+thisByte));
     if (on) {
-        status |= (1<<bit);
+        status |= (1<<thisBit);
     } else {
-        status &= ~(1<<bit);
+        status &= ~(1<<thisBit);
     }
-    ee_write((WORD)(EE_AREQ_STATUS+byte), status);
+    ee_write((WORD)(EE_AREQ_STATUS+thisByte), status);
 #endif
     
     if (getProducedEvent(happening)) {
@@ -196,9 +196,9 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
     }
     happening = ev0;
     if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
-        unsigned char bit = happening & 0x7;
-        unsigned char byte = happening >> 3;
-        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+byte)) & (1<<bit);
+        unsigned char thisBit = happening & 0x7;
+        unsigned char thisByte = happening >> 3;
+        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+thisByte)) & (1<<thisBit);
         if (nodeNumber == 0) {
             cbusMsg[d1] = nodeID >> 8;
             cbusMsg[d2] = nodeID & 0xFF;
