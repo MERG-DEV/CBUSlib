@@ -78,5 +78,8 @@ BOOL cbusSendEvent( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent );
 BOOL cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL onEvent, BYTE *msg, BYTE datalen );
 void cbusSendDataEvent(BYTE cbusNum, WORD Node_id, BYTE *debug_data );
 
+#ifdef BOOTLOADER_PRESENT
+#define appmain() main()
+#endif
 
 #endif

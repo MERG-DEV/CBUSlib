@@ -62,7 +62,7 @@ extern BOOL validStart(BYTE tableIndex);
 extern void clearAllEvents(void);
 
 #ifdef NV_CACHE
-extern void loadNvCache(void);
+extern ModuleNvDefs* loadNvCache(void);
 #endif
 
 #ifdef __XC8__

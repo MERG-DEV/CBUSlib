@@ -107,7 +107,7 @@ void setStatusLed( BOOL FLiMLED )
  */
 void doFLiMFlash(void) 
 {
-    LED1Y = !LED1Y;
+    LED1Y = (BOOL)(! LED1Y);
     flashTime.Val = tickGet();
 }
 

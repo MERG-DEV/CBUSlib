@@ -191,14 +191,14 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
     // found the matching event
     ev0 = getEv(tableIndex, 0); // get the Happening
     if (ev0 < 0) {
-        doError(-ev0);
+        doError((unsigned char)(-ev0));
         return;
     }
-    happening = ev0;
+    happening = (unsigned char)ev0;
     if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
-        unsigned char thisBit = happening & 0x7;
-        unsigned char thisByte = happening >> 3;
-        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+thisByte)) & (1<<thisBit);
+        unsigned char thisBit = (unsigned char)(happening & 0x7);
+        unsigned char thisByte = (unsigned char)(happening >> 3);
+        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+thisByte)) & (unsigned char)(1<<thisBit);
         if (nodeNumber == 0) {
             cbusMsg[d1] = nodeID >> 8;
             cbusMsg[d2] = nodeID & 0xFF;
@@ -209,9 +209,9 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
         cbusMsg[d3] = eventNumber >> 8;
         cbusMsg[d4] = eventNumber & 0xFF;
         if (status) {
-            cbusMsg[d0] = nodeNumber == 0 ? OPC_ARSON : OPC_ARON;    
+            cbusMsg[d0] = (unsigned char)(nodeNumber == 0 ? OPC_ARSON : OPC_ARON);    
         } else {
-            cbusMsg[d0] = nodeNumber == 0 ? OPC_ARSOF : OPC_AROF;
+            cbusMsg[d0] = (unsigned char)(nodeNumber == 0 ? OPC_ARSOF : OPC_AROF);
         }
         cbusSendMsg(ALL_CBUS, cbusMsg);
     }

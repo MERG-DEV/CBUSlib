@@ -110,7 +110,7 @@ void initTicker(unsigned char priority)
         divider++;
 
 #if defined(__18CXX) || defined (__XC8__)
-    TMR_CON = 0b00000000 | divider;     // Enable internal clock, prescaler on and set prescaler value
+    TMR_CON = (unsigned char)(0b00000000 | divider);     // Enable internal clock, prescaler on and set prescaler value
     TMR_IP = priority;
     TMR_IF = 0;
     TMR_IE = 1;
