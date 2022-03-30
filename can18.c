@@ -158,7 +158,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
       BRGCON1 = 0b00001111;                         // 16MHz resonator + PLL = 64MHz clock
     #endif
 
-  clkMHz = (( BRGCON1 & 0x3F ) + 1 ) << 2;      // Convert BRGCON1 value into clock MHz.
+  clkMHz = (( BRGCON1 & 0x3FU ) + 1U ) << 2U;      // Convert BRGCON1 value into clock MHz.
 
 #endif  
   
@@ -269,8 +269,8 @@ void canInit(BYTE busNum, BYTE initCanID) {
   TXB0CONbits.TXPRI0 = 0;                           // Set buffer priority, so will be sent after any self enumeration packets
   TXB0CONbits.TXPRI1 = 0;
   TXB0DLC = 0;                                      // Not RTR, payload length will be set by transmit routine
-  TXB0SIDH = 0b10110000 | ((canID & 0x78) >>3);     // Set CAN priority and ms 4 bits of can id
-  TXB0SIDL = (canID & 0x07) << 5;                   // LS 3 bits of can id and extended id to zero
+  TXB0SIDH = 0b10110000 | ((canID & 0x78U) >>3U);     // Set CAN priority and ms 4 bits of can id
+  TXB0SIDL = (canID & 0x07U) << 5U;                   // LS 3 bits of can id and extended id to zero
 
   // Preload TXB1 with RTR frame to initiate self enumeration when required
 
@@ -278,7 +278,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
   TXB1CONbits.TXPRI0 = 0;                           // Set buffer priority, so will be sent before any CBUS data packets but after any enumeration replies
   TXB1CONbits.TXPRI1 = 1;
   TXB1DLC = 0x40;                                   // RTR packet with zero payload
-  TXB1SIDH = 0b10110000 | ((canID & 0x78) >>3);     // Set CAN priority and ms 4 bits of can id
+  TXB1SIDH = 0b10110000 | ((canID & 0x78U) >>3U);     // Set CAN priority and ms 4 bits of can id
   TXB1SIDL = TXB0SIDL;                              // LS 3 bits of can id and extended id to zero
 
   // Preload TXB2 with a zero length packet containing CANID for  use in self enumeration
@@ -287,7 +287,7 @@ void canInit(BYTE busNum, BYTE initCanID) {
   TXB2CONbits.TXPRI0 = 1;                           // Set high buffer priority, so will be sent before any CBUS packets
   TXB2CONbits.TXPRI1 = 1;
   TXB2DLC = 0;                                      // Not RTR, zero payload
-  TXB2SIDH = 0b10110000 | ((canID & 0x78) >>3);     // Set CAN priority and ms 8 bits of can id
+  TXB2SIDH = 0b10110000 | ((canID & 0x78U) >>3U);     // Set CAN priority and ms 8 bits of can id
   TXB2SIDL = TXB0SIDL;                   // LS 3 bits of can id and extended id to zero
 
   // Initialise enumeration control variables
@@ -310,15 +310,15 @@ BOOL setNewCanId( BYTE newCanId )
     if ((newCanId >= 1) && (newCanId <= 99)) {
         canID = newCanId;
         TXB0SIDH &= 0b11110000;                // Clear canid bits
-        TXB0SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for CUBS packet transmissions
-        TXB0SIDL = ( newCanId & 0x07) << 5;
+        TXB0SIDH |= ((newCanId & 0x78U) >>3U);  // Set new can id for CUBS packet transmissions
+        TXB0SIDL = ( newCanId & 0x07U) << 5U;
 
         TXB1SIDH &= 0b11110000;                // Clear canid bits
-        TXB1SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
+        TXB1SIDH |= ((newCanId & 0x78U) >>3U);  // Set new can id for self enumeration frame transmission
         TXB1SIDL = TXB0SIDL;
 
         TXB2SIDH &= 0b11110000;               // Clear canid bits
-        TXB2SIDH |= ((newCanId & 0x78) >>3);  // Set new can id for self enumeration frame transmission
+        TXB2SIDH |= ((newCanId & 0x78U) >>3U);  // Set new can id for self enumeration frame transmission
         TXB2SIDL = TXB0SIDL;
 
         ee_write((WORD)EE_CAN_ID, newCanId );       // Update saved value
@@ -355,8 +355,8 @@ BOOL canTX( CanPacket *msg )
 
   msg->buffer[con] = 0;
   msg->buffer[dlc] &= 0x0F;  // Ensure not RTR
-  msg->buffer[sidh] = 0b10110000 | ((canID & 0x78) >>3);
-  msg->buffer[sidl] = (canID & 0x07) << 5;
+  msg->buffer[sidh] = 0b10110000 | ((canID & 0x78U) >>3U);
+  msg->buffer[sidl] = (canID & 0x07U) << 5U;
 
   if (msg->buffer[dlc] > 8)
       msg->buffer[dlc] = 8;
@@ -369,7 +369,7 @@ BOOL canTX( CanPacket *msg )
   if (((txIndexNextUsed == txIndexNextFree) || canTransmitFailed) && (!TXB0CONbits.TXREQ))  // check if software fifo empty and transmit buffer ready
   {
      ptr = (BYTE*) & TXB0CON;
-     memcpy(ptr, (void *) msg->buffer, msg->buffer[dlc] + 6);
+     memcpy(ptr, (void *) msg->buffer, msg->buffer[dlc] + 6U);
 
      larbRetryCount = LARB_RETRIES;
      canTransmitTimeout.Val = tickGet();
@@ -380,15 +380,15 @@ BOOL canTX( CanPacket *msg )
   }
   else  // load it into software fifo
   {
-      if (!(fullUp = (txIndexNextFree == 0xFF)))
+      if (!(fullUp = (unsigned char)(txIndexNextFree == 0xFFU)))
       {
-        memcpy( canTxFifo[txIndexNextFree].buffer, msg->buffer, msg->buffer[dlc] + 6);
+        memcpy( canTxFifo[txIndexNextFree].buffer, msg->buffer, msg->buffer[dlc] + 6U);
   
         if (++txIndexNextFree == CANTX_FIFO_LEN )
-            txIndexNextFree = 0;
+            txIndexNextFree = 0U;
 
         if (txIndexNextUsed == txIndexNextFree) // check if fifo now full
-            txIndexNextFree = 0xFF; // mark as full
+            txIndexNextFree = 0xFFU; // mark as full
       }
       else
         txOflowCount++;
@@ -398,12 +398,12 @@ BOOL canTX( CanPacket *msg )
       txFifoUsage++;
       hiIndex = ( txIndexNextFree < txIndexNextUsed ? txIndexNextFree + CANTX_FIFO_LEN : txIndexNextFree);
       if ((hiIndex - txIndexNextUsed) > maxCanTxFifo )
-        maxCanTxFifo = hiIndex - txIndexNextUsed;
+        maxCanTxFifo = (unsigned char)(hiIndex - txIndexNextUsed);
   }
 
   TXBnIE = 1;  // Enable transmit buffer interrupt
  
-  return !fullUp;   // Return true for successfully submitted for transmission
+  return (unsigned char)( ! fullUp);   // Return true for successfully submitted for transmission
 }
 
 
@@ -439,7 +439,7 @@ void checkTxFifo( void )
         if (txIndexNextUsed != txIndexNextFree)   // If data waiting in software fifo, and buffer ready
         {
             ptr = (BYTE*) & TXB0CON;              // Dest is CAN transmit buffer
-            memcpy(ptr, canTxFifo[txIndexNextUsed].buffer, canTxFifo[txIndexNextUsed].buffer[dlc] + 6);
+            memcpy(ptr, canTxFifo[txIndexNextUsed].buffer, canTxFifo[txIndexNextUsed].buffer[dlc] + 6U);
             txFifoUsage--;
 
             larbRetryCount = LARB_RETRIES;
@@ -508,7 +508,7 @@ BOOL canbusRecv(CanPacket *msg)
 
     if (rxIndexNextUsed != rxIndexNextFree)
     {
-      memcpy(msg->buffer, canRxFifo[rxIndexNextUsed].buffer, canRxFifo[rxIndexNextUsed].buffer[dlc] + 6);
+      memcpy(msg->buffer, canRxFifo[rxIndexNextUsed].buffer, canRxFifo[rxIndexNextUsed].buffer[dlc] + 6U);
       rxFifoUsage--;
       
       if (++rxIndexNextUsed >= CANRX_FIFO_LEN)
@@ -524,7 +524,7 @@ BOOL canbusRecv(CanPacket *msg)
 //        while (!msgFound && COMSTATbits.NOT_FIFOEMPTY)
         if (COMSTATbits.NOT_FIFOEMPTY)
         {
-            ptr = (CanPacket*) _PointBuffer(CANCON & 0x07);
+            ptr = (CanPacket*) _PointBuffer(CANCON & 0x07U);
             RXBnIF = 0;
 //            if (COMSTATbits.RXBnOVFL) {
 //              maxcanq++; // Buffer Overflow
@@ -536,7 +536,7 @@ BOOL canbusRecv(CanPacket *msg)
             // Check incoming Canid and initiate self enumeration if it is the same as our own
 
             if (msgFound = checkIncomingPacket(ptr))
-              memcpy(msg->buffer, (void*) ptr, ptr->buffer[dlc] + 6);  // Get message for processing
+              memcpy(msg->buffer, (void*) ptr, ptr->buffer[dlc] + 6U);  // Get message for processing
 
             // Record and Clear any previous invalid message bit flag.
             if (IRXIF) {
@@ -561,7 +561,7 @@ BOOL canbusRecv(CanPacket *msg)
 BOOL insertIntoRxFifo( CanPacket *ptr )
 
 {
-    memcpy(canRxFifo[rxIndexNextFree].buffer, ptr, ptr->buffer[dlc] + 6);
+    memcpy(canRxFifo[rxIndexNextFree].buffer, ptr, ptr->buffer[dlc] + 6U);
     rxFifoUsage++;
 
     if (++rxIndexNextFree >= CANRX_FIFO_LEN)
@@ -595,7 +595,7 @@ void canFillRxFifo(void)
   while (COMSTATbits.NOT_FIFOEMPTY)
   {
 
-    ptr = (CanPacket*) _PointBuffer(CANCON & 0x07);
+    ptr = (CanPacket*) _PointBuffer(CANCON & 0x07U);
     RXBnIF = 0;
     if (RXBnOVFL) {
    //   maxcan++; // Buffer Overflow
@@ -624,7 +624,7 @@ void canFillRxFifo(void)
 
     hiIndex = ( rxIndexNextFree < rxIndexNextUsed ? rxIndexNextFree + CANRX_FIFO_LEN : rxIndexNextFree);
     if ((hiIndex - rxIndexNextUsed) > maxCanRxFifo )
-        maxCanRxFifo = hiIndex - rxIndexNextUsed;
+        maxCanRxFifo = (unsigned char)(hiIndex - rxIndexNextUsed);
 
   }  // While hardware FIFO not empty
   FIFOWMIF = 0;
@@ -669,7 +669,7 @@ void processEnumeration(void)
 
         if ((enumResult = enumerationResults[i]) != 0xFF)
         {
-            for (newCanId = i*8; (enumResult & 0x01); newCanId++) {
+            for (newCanId = i*8U; (enumResult & 0x01U); newCanId++) {
                 enumResult >>= 1;
             }
             if ((newCanId >= 1) && (newCanId <= 99)) {
@@ -704,7 +704,7 @@ BOOL checkIncomingPacket(CanPacket *ptr)
     BOOL        msgFound;
 
     msgFound = FALSE;
-    incomingCanId = ((ptr->buffer[sidh] << 3) + (ptr->buffer[sidl] >> 5)) & 0x7f;
+    incomingCanId = (unsigned char)((unsigned char)((unsigned char)(ptr->buffer[(unsigned char)sidh] << 3U) + (unsigned char)(ptr->buffer[(unsigned char)sidl] >> 5U)) & 0x7fU);
 
     if (enumerationInProgress) {
         arraySetBit( enumerationResults, incomingCanId);
@@ -725,7 +725,7 @@ BOOL checkIncomingPacket(CanPacket *ptr)
     }
     else
     {
-        msgFound = ptr->buffer[dlc] & 0x0F;     // Check not zero payload
+        msgFound = ptr->buffer[dlc] & 0x0FU;     // Check not zero payload
         if  (ptr->buffer[dlc] > 8)
             ptr->buffer[dlc] = 8; // Limit buffer size to 8 bytes (defensive coding - it should not be possible for it to ever be more than 8, but just in case
     }

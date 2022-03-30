@@ -112,9 +112,9 @@ BOOL sendProducedEvent(HAPPENING_T happening, BOOL on) {
     unsigned char thisByte = (unsigned char)(happening >> 3);
     unsigned char status = ee_read((WORD)(EE_AREQ_STATUS+thisByte));
     if (on) {
-        status |= (1<<thisBit);
+        status |= (unsigned char)(1U<<thisBit);
     } else {
-        status &= ~(1<<thisBit);
+        status &= (unsigned char)(~(1U<<thisBit));
     }
     ee_write((WORD)(EE_AREQ_STATUS+thisByte), status);
 #endif
@@ -198,7 +198,7 @@ void doAreq(WORD nodeNumber, WORD eventNumber) {
     if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
         unsigned char thisBit = (unsigned char)(happening & 0x7);
         unsigned char thisByte = (unsigned char)(happening >> 3);
-        BOOL status = ee_read((WORD)(EE_AREQ_STATUS+thisByte)) & (unsigned char)(1<<thisBit);
+        BOOL status = (unsigned char)(ee_read((WORD)(EE_AREQ_STATUS+thisByte)) & (unsigned char)(1U<<thisBit));
         if (nodeNumber == 0) {
             cbusMsg[d1] = nodeID >> 8;
             cbusMsg[d2] = nodeID & 0xFF;

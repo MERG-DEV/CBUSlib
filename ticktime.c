@@ -242,23 +242,19 @@ DWORD tickGet(void)
 // Called from the ISR to check for timer overflow
 
 void tickISR(void)
-
 {
-    #if defined(__18CXX)
-        //check to see if the symbol timer overflowed
-        if(TMR_IF)
+    //check to see if the symbol timer overflowed
+    if(TMR_IF)
+    {
+        if(TMR_IE)
         {
-            if(TMR_IE)
-            {
-                /* there was a timer overflow */
-                TMR_IF = 0;
-                timerExtension1++;
-                if(timerExtension1 == 0) {
-                    timerExtension2++;
-                }
+            /* there was a timer overflow */
+            TMR_IF = 0;
+            timerExtension1++;
+            if(timerExtension1 == 0) {
+                timerExtension2++;
             }
         }
-    #endif
-
+    }
     return;
 }        

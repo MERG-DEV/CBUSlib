@@ -613,7 +613,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
                 return 0;
             }
             // find the next free entry
-            for (nextIdx = tableIndex+1 ; nextIdx < NUM_EVENTS; nextIdx++) {
+            for (nextIdx = tableIndex+1U ; nextIdx < NUM_EVENTS; nextIdx++) {
                 EventTableFlags nextF;
                 nextF.asByte = readFlashBlock((WORD)(&(eventTable[nextIdx].flags.asByte)));
                 if (nextF.freeEntry) {
@@ -645,7 +645,7 @@ unsigned char writeEv(unsigned char tableIndex, BYTE evNum, BYTE evVal) {
     // update the number per row count
     f.asByte = readFlashBlock((WORD)(&(eventTable[tableIndex].flags.asByte)));
     if (f.eVsUsed <= evNum) {
-        f.eVsUsed = evNum+1;
+        f.eVsUsed = evNum+1U;
         writeFlashByte((BYTE*)&(eventTable[tableIndex].flags.asByte), f.asByte);
     }
     // If we are deleting then see if we can remove all
@@ -835,7 +835,7 @@ BOOL parseCbusEvent(BYTE * msg) {
  * @return an index into eventTable
  */
 BYTE evtIdxToTableIndex(BYTE evtIdx) {
-    return evtIdx-1;
+    return evtIdx-1U;
 }
 
 /**
@@ -845,7 +845,7 @@ BYTE evtIdxToTableIndex(BYTE evtIdx) {
  * @return an CBUS EvtIdx
  */
 BYTE tableIndexToEvtIdx(BYTE tableIndex) {
-    return tableIndex+1;
+    return tableIndex+1U;
 }
 
 
@@ -891,8 +891,8 @@ void checkRemoveTableEntry(unsigned char tableIndex) {
  unsigned char getHash(WORD nn, WORD en) {
     unsigned char hash;
     // need to hash the NN and EN to a uniform distribution across HASH_LENGTH
-    hash = nn ^ (nn >> 8);
-    hash = 7*hash + (en ^ (en>>8)); 
+    hash = nn ^ (nn >> 8U);
+    hash = 7U*hash + (en ^ (en>>8U)); 
     // ensure it is within bounds of eventChains
     hash %= HASH_LENGTH;
     return hash;
@@ -931,7 +931,7 @@ void rebuildHashtable(void) {
             // ev[0] is used to store the Produced event's action
             a = getEv(tableIndex, 0);
             if (a >= 0) {
-                happening = a;
+                happening = (HAPPENING_T)a;
                 if ((happening >= HAPPENING_BASE) && (happening-HAPPENING_BASE< NUM_HAPPENINGS)) {
                     happening2Event[happening-HAPPENING_BASE] = tableIndex;
                 }
