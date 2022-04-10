@@ -1,5 +1,3 @@
-#ifdef __XC8
-
 /* 
  * File:   GenericTypeDefs.h
  * Author: Ian
@@ -14,7 +12,6 @@
 extern "C" {
 #endif
 
-#ifdef __XC8__
     /*
      * Whereas the C18 compiler seemed to have these the XC8 does not.
      * When compiling with C18 make sure you use the standard GenericTypes.h
@@ -28,12 +25,8 @@ extern "C" {
     #define TRUE 1
     #define FALSE 0
 
-#endif
-
 #ifdef	__cplusplus
 }
 #endif
 
 #endif	/* GENERICTYPEDEFS_H */
-
-#endif

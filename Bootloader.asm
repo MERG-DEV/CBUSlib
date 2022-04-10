@@ -77,7 +77,6 @@
 
 ;**********************************************************************************
 
-#ifdef __C18
 #ifdef __18F25K80
     #define CPUF18K
 #else
@@ -110,9 +109,6 @@
 
 #ifdef __18F2680
 #include    P18F2680.INC
-#endif
-#else
-    #include <xc.inc>
 #endif
     
     

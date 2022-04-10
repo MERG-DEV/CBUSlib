@@ -248,7 +248,7 @@ rom near EventTable * eventTable = (rom near EventTable*)AT_EVENTS;
  */
 
 #ifdef PRODUCED_EVENTS
-#ifdef __C18
+#ifdef __18CXX
 #pragma udata large_event_hash
 #endif
 // the lookup table to find an EventTable entry by Happening
@@ -261,7 +261,7 @@ BYTE happening2Event[NUM_HAPPENINGS];    // MIO: 64+8 bytes
 //
 
 BYTE eventChains[HASH_LENGTH][CHAIN_LENGTH];    // MIO: 32*20 bytes = 640
-#ifdef __C18
+#ifdef __18CXX
 #pragma udata
 #endif
 #endif
