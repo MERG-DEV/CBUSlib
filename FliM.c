@@ -65,7 +65,7 @@ extern void clearAllEvents(void);
 extern ModuleNvDefs* loadNvCache(void);
 #endif
 
-#ifdef __XC8__
+#ifdef __XC8
 WORD    deviceid;      // Device id in config memory
 // Static variables local to this library
 #else
@@ -322,7 +322,7 @@ BOOL parseCBUSMsg(BYTE *msg)                // Process the incoming message
  */
 BOOL parseFLiMCmd(BYTE *rx_ptr) 
 {
-#ifdef __XC8__
+#ifdef __XC8
     BOOL     cmdProcessed = FALSE;
 #else
     overlay BOOL     cmdProcessed = FALSE;
@@ -683,7 +683,7 @@ void doRqnp(void)
 void doRqmn(void) 
 {
     BYTE        copyCounter, padCounter;
-#ifdef __XC8__
+#ifdef __XC8
     const char*   namptr;
 #else
     rom char*   namptr;
@@ -692,7 +692,7 @@ void doRqmn(void)
  
     
     namadr = FCUparams.module_type_name;
-#ifdef __XC8__
+#ifdef __XC8
     namptr = (const char*)namadr;
 #else
     namptr = (rom char*)namadr;

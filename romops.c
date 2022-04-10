@@ -63,7 +63,7 @@
 //#pragma romdata BOOTFLAG
 //rom BYTE bootflag = 0;
 
-#ifndef __XC8__
+#ifndef __XC8
 #pragma udata MAIN_VARS
 #endif
 
@@ -72,7 +72,7 @@ BYTE        flashbuf[64];    // Assumes that Erase and Write are the same size
 BYTE        flashidx;
 WORD        flashblock;     //address of current 64 byte flash block
 
-#ifndef __XC8__
+#ifndef __XC8
 //#pragma code APP
 #endif
 
@@ -101,7 +101,7 @@ void initRomOps(void)
  void  writeFlashShort(void) 
  {
     
-#ifdef __XC8__
+#ifdef __XC8
     TBLPTR = flashblock & ~(64 - 1); //force row boundary
     di();     // disable all interrupts ERRATA says this is needed before TBLWT
     for (unsigned char i=0; i<64; i++) {
@@ -266,7 +266,7 @@ BYTE readFlashBlock(WORD flashAddr)
     {
         // load the buffer
         flashblock = flashAddr & 0xFFC0;
-#ifdef __XC8__
+#ifdef __XC8
         EECON1=0X80;    // access to flash
         TBLPTR = flashblock;
         for (unsigned char i=0; i<64; i++) {
@@ -420,7 +420,7 @@ void ee_write(WORD addr, BYTE data) {
         EECON2 = 0x55;
         EECON2 = 0xAA;
         EECON1bits.WR = 1;
-#ifdef __XC8__
+#ifdef __XC8
         while (EECON1bits.WR)
             ;
         //asm("BTFSC EECON1, 1");                 // should wait until WR clears
@@ -469,11 +469,11 @@ void ee_write_short(WORD addr, WORD data) {
 /**
  * Read the DevId from the Config area
  */
-#ifdef __XC8__
+#ifdef __XC8
 extern const WORD devId @0x3FFFFE;
 #endif
 WORD readCPUType( void ) {
-#ifdef __XC8__
+#ifdef __XC8
     return devId;
 #else
     WORD id = *(far rom WORD*)0x3FFFFE;
