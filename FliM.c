@@ -322,8 +322,6 @@ BOOL parseCBUSMsg(BYTE *msg)                // Process the incoming message
  */
 BOOL parseFLiMCmd(BYTE *rx_ptr) 
 {
-    WORD    requestNode;
-    
 #ifdef __XC8__
     BOOL     cmdProcessed = FALSE;
 #else
@@ -457,33 +455,30 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
     {   // Process any command not sent specifically to us that still needs action
         switch (rx_ptr[d0]) 
         {
-            case OPC_QNN:
-                QNNrespond();          // Respond to node query 	//  ??? update to do new spec response agreed
-                cmdProcessed = TRUE;
-                break;
-            
 #ifdef AREQ_SUPPORT
-            requestNode = (((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2];
-            
             case OPC_AREQ:
                 // Illicit a response indicating last long event state
                 // The NN supplied is actually the Long event's NN instead of the addressed module
                 // but these should be the same for the producer of the event.
-                doAreq(requestNode, (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
+                doAreq((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2], (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
                 cmdProcessed = TRUE;
                 break;
 
             case OPC_ASRQ:
                 // Illicit a response indicating last short event state
                 // The NN supplied can either be zero (short event) or the NN of the producer module
-                // Any module that produces that short event can respond if the NN is zero, if it is non-zero, then only that producer module shoudl respond.
-                if ((requestNode == 0) || thisNN(rx_ptr))
+                // Any module that produces that short event can respond if the NN is zero, if it is non-zero, then only that producer module should respond.
+                if (((((WORD)rx_ptr[d1]) << 8) + rx_ptr[d2] == 0) || thisNN(rx_ptr))   
                 {        
                     doAreq(0 , (((WORD)rx_ptr[d3]) << 8) + rx_ptr[d4]);
                     cmdProcessed = TRUE;
                 }
                 break;
-#endif      
+#endif  
+            case OPC_QNN:
+                QNNrespond();          // Respond to node query 	//  ??? update to do new spec response agreed
+                cmdProcessed = TRUE;
+                break;
         }        
     }
 
