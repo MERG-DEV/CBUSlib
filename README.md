@@ -9,9 +9,9 @@ They help you to comply with the CBUS specification.
 The files are not strictly a library but a set of source files which 
 are added to the application code to build the firmware for a module.
 
-# Version 2m
+# Version 2p
 
-See CANMIO wiki page for full details of changes and bug fixes in this version
+See CANMIO knowledgebase page for full details of changes and bug fixes 
 
 
 ## Usage ##
