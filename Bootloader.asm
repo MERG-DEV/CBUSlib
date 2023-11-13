@@ -83,7 +83,11 @@
     #ifdef __18F26K80
 	#define CPUF18K
     #else
-	#define CPUF18F
+	#ifdef __18F46K80
+	    #define CPUF18K
+	#else
+	    #define CPUF18F
+	#endif
     #endif
 #endif
 
@@ -95,6 +99,10 @@
 #include    P18F26K80.INC
 #endif
 
+#ifdef __18F46K80
+#include    P18F46K80.INC
+#endif
+    
 #ifdef __18F2480
 #include    P18F2480.INC
 #endif

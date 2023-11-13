@@ -67,6 +67,12 @@ extern "C" {
     #define CPUF18F
 #endif
 
+// Define 26K series family for amount of flash available
+    
+#if defined (__18F26K80) || defined(__18F46K80) || defined(__18F66K80)   
+    #define CPUF26K
+#endif
+    
 // Define the amount of EEPROM available
     
 #if defined(__18F2480) || defined(__18F2580)
@@ -86,6 +92,10 @@ extern "C" {
     #define CPU P18F26K80
 #endif
 
+#if defined(__18F46K80)
+    #define CPU P18F46K80
+#endif
+
 #if defined(__18F2580)
     #define CPU P18F2580
 #endif
@@ -97,6 +107,8 @@ extern "C" {
 #if defined(__18F2680)
     #define CPU P18F2680
 #endif
+
+    
 
 
 #ifdef	__cplusplus
