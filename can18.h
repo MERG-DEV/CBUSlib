@@ -70,8 +70,8 @@
 // than 256 bytes, which will require a larger area definition in the link control 
 // file and may  generate additional code from the compiler to manage the index values
 
-#define CANTX_FIFO_LEN  16
-#define CANRX_FIFO_LEN  16
+#define CANTX_FIFO_LEN  16U
+#define CANRX_FIFO_LEN  16U
 
 
 // CANSTAT interrupt reason codes - not defined in processor header for some reason

@@ -62,10 +62,10 @@ extern BOOL validStart(BYTE tableIndex);
 extern void clearAllEvents(void);
 
 #ifdef NV_CACHE
-extern void loadNvCache(void);
+extern ModuleNvDefs* loadNvCache(void);
 #endif
 
-#ifdef __XC8__
+#ifdef __XC8
 WORD    deviceid;      // Device id in config memory
 // Static variables local to this library
 #else
@@ -322,7 +322,7 @@ BOOL parseCBUSMsg(BYTE *msg)                // Process the incoming message
  */
 BOOL parseFLiMCmd(BYTE *rx_ptr) 
 {
-#ifdef __XC8__
+#ifdef __XC8
     BOOL     cmdProcessed = FALSE;
 #else
     overlay BOOL     cmdProcessed = FALSE;
@@ -569,9 +569,9 @@ void doRqnpn(BYTE idx)
         if (idx == 0) 
             cbusMsg[d4] = FCUparams.parameter_count;
         else if ((idx >= PAR_CPUMID) && (idx < PAR_CPUMAN)  ) 
-            cbusMsg[d4] = readCPUType() >> (( idx - PAR_CPUMID )*8);
+            cbusMsg[d4] = (unsigned char)(readCPUType() >> ((unsigned char)( idx - PAR_CPUMID )*8U));
         else 
-            cbusMsg[d4] = paramptr->bytes[idx-1];
+            cbusMsg[d4] = paramptr->bytes[idx-1U];
 
         if ((idx == PAR_FLAGS) && (flimState == fsFLiM)) 
             cbusMsg[d4] |= PF_FLiM;
@@ -668,13 +668,13 @@ void doRqnp(void)
 
     cbusMsg[d0] = OPC_PARAMS;
 
-    for (copyCounter = d1; copyCounter <= d7; copyCounter++) 
+    for (copyCounter = (unsigned char)d1; copyCounter <= (unsigned char)d7; copyCounter++) 
     {
-        cbusMsg[copyCounter] = paramptr->bytes[copyCounter-d1];
+        cbusMsg[copyCounter] = paramptr->bytes[(unsigned char)(copyCounter-d1)];
     }
     
     // update the dynamic flags
-    cbusMsg[d1+PAR_FLAGS-1] = getParFlags();
+    cbusMsg[(unsigned char)d1+PAR_FLAGS-1U] = getParFlags();
     
     cbusSendMsg(0, cbusMsg);
     
@@ -687,8 +687,8 @@ void doRqnp(void)
 void doRqmn(void) 
 {
     BYTE        copyCounter, padCounter;
-#ifdef __XC8__
-    char*   namptr;
+#ifdef __XC8
+    const char*   namptr;
 #else
     rom char*   namptr;
 #endif
@@ -696,8 +696,8 @@ void doRqmn(void)
  
     
     namadr = FCUparams.module_type_name;
-#ifdef __XC8__
-    namptr = (char*)namadr;
+#ifdef __XC8
+    namptr = (const char*)namadr;
 #else
     namptr = (rom char*)namadr;
 #endif
@@ -706,8 +706,8 @@ void doRqmn(void)
     
     cbusMsg[d0] = OPC_NAME;
     // This MUST be 7 characters. 
-    for (copyCounter = 0; copyCounter < 7; copyCounter++ ) 
-      cbusMsg[copyCounter+d1] = *namptr++;
+    for (copyCounter = 0U; copyCounter < 7U; copyCounter++ ) 
+      cbusMsg[(unsigned char)(copyCounter+d1)] = *namptr++;
     // The source module_type_name string is now padded with spaces so no need to do it here.
     
     cbusSendMsg( 0, cbusMsg );
@@ -843,7 +843,7 @@ void doReval(BYTE enNum, BYTE evNum)
         return;
     }
     
-    evIndex = evNum-1;    // Convert from CBUS numbering (starts at 1 for produced action))
+    evIndex = evNum-1U;    // Convert from CBUS numbering (starts at 1 for produced action))
     
     // check it is a valid index
     if (tableIndex < NUM_EVENTS) 
@@ -861,11 +861,11 @@ void doReval(BYTE enNum, BYTE evNum)
             if (evVal >= 0) {
                 cbusMsg[d3] = enNum;
                 cbusMsg[d4] = evNum;
-                cbusMsg[d5] = evVal;
+                cbusMsg[d5] = (unsigned char)evVal;
                 cbusSendOpcMyNN( 0, OPC_NEVAL, cbusMsg );
                 return;
             }
-            cbusMsg[d3] = -evVal;   // a negative value is the error code
+            cbusMsg[d3] = (unsigned char)(-evVal);   // a negative value is the error code
             cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
             return;
         }
@@ -919,11 +919,11 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
         evVal = getEv(tableIndex, evNum);
     }
     if (evVal >= 0) {
-        cbusMsg[d6] = evVal;
+        cbusMsg[d6] = (unsigned char)evVal;
         cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
         return;
     }
-    cbusMsg[d3] = -evVal;   // a negative value is the error code
+    cbusMsg[d3] = (unsigned char)(-evVal);   // a negative value is the error code
     cbusSendOpcMyNN( 0, OPC_CMDERR, cbusMsg);
 }
 

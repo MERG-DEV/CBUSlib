@@ -53,7 +53,7 @@
 *  4.2   15/1/15      pnb       Extracted from MLA as a standalone utility (C18 only at present)
 ********************************************************************/
 
-#ifndef __XC8__
+#ifndef __XC8
 //#pragma code APP
 #endif
 /************************ HEADERS **********************************/
@@ -109,8 +109,8 @@ void initTicker(unsigned char priority)
     for (i=clkMHz;i>0;i>>=1) // Work out timer prescaler value from clock MHz
         divider++;
 
-#if defined(__18CXX) || defined (__XC8__)
-    TMR_CON = 0b00000000 | divider;     // Enable internal clock, prescaler on and set prescaler value
+#if defined(__18CXX) || defined (__XC8)
+    TMR_CON = (unsigned char)(0b00000000 | divider);     // Enable internal clock, prescaler on and set prescaler value
     TMR_IP = priority;
     TMR_IF = 0;
     TMR_IE = 1;
@@ -161,7 +161,7 @@ DWORD tickGet(void)
 {
     TickValue currentTime;
     
-#if defined(__18CXX) || defined(__XC8__)
+#if defined(__18CXX) || defined(__XC8)
     //BYTE failureCounter;
     BYTE IntFlag1;
     BYTE IntFlag2;
@@ -242,23 +242,19 @@ DWORD tickGet(void)
 // Called from the ISR to check for timer overflow
 
 void tickISR(void)
-
 {
-    #if defined(__18CXX)
-        //check to see if the symbol timer overflowed
-        if(TMR_IF)
+    //check to see if the symbol timer overflowed
+    if(TMR_IF)
+    {
+        if(TMR_IE)
         {
-            if(TMR_IE)
-            {
-                /* there was a timer overflow */
-                TMR_IF = 0;
-                timerExtension1++;
-                if(timerExtension1 == 0) {
-                    timerExtension2++;
-                }
+            /* there was a timer overflow */
+            TMR_IF = 0;
+            timerExtension1++;
+            if(timerExtension1 == 0) {
+                timerExtension2++;
             }
         }
-    #endif
-
+    }
     return;
 }        

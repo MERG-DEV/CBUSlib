@@ -105,7 +105,7 @@ typedef	union
     BYTE        bytes[sizeof(ParamVals)];
 } FLiMParameters;
 
-#ifdef __XC8__
+#ifdef __XC8
 typedef ParamVals       *prmvalptr;
 typedef FLiMParameters  *FLiMprmptr;
 #else
@@ -200,7 +200,7 @@ extern enum     FLiMStates flimState;
 
 // Data stored in program ROM - FLiM parameters. Node Variables and Event Variables storage definition is in the application module.
 
-#ifdef __XC8__
+#ifdef __XC8
 extern const ParamVals  FLiMparams;
 extern const FCUParams  FCUparams;
 extern const char       module_type[];
