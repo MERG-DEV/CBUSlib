@@ -523,16 +523,20 @@ BOOL parseFLiMCmd(BYTE *rx_ptr)
  * return the current parameter flags
  * @return parameter flags
  */
-BYTE getParFlags() {
+BYTE getParFlags() 
+{
     FLiMprmptr  paramptr = (FLiMprmptr)&FLiMparams;
+    BYTE    flgprm;
 
-    if (flimState == fsFLiMLearn) {
-        return(PF_LRN | PF_FLiM) | (paramptr->params.module_flags);
-    }
-    if (flimState == fsFLiM) {
-        return(PF_FLiM)|(paramptr->params.module_flags);
-    }
-    return 0;
+    flgprm = paramptr->params.module_flags;
+    
+    if (flimState == fsFLiMLearn)
+        flgprm |= PF_LRN | PF_FLiM;
+    
+    if (flimState == fsFLiM) 
+        flgprm |= PF_FLiM;
+    
+    return flgprm;
 }
 
 /**
@@ -573,8 +577,8 @@ void doRqnpn(BYTE idx)
         else 
             cbusMsg[d4] = paramptr->bytes[idx-1];
 
-        if ((idx == PAR_FLAGS) && (flimState == fsFLiM)) 
-            cbusMsg[d4] |= PF_FLiM;
+        if (idx == PAR_FLAGS) 
+            cbusMsg[d4] = getParFlags();
         
     	cbusSendMsgNN(ALL_CBUS, -1, cbusMsg);
     }
@@ -674,7 +678,7 @@ void doRqnp(void)
     }
     
     // update the dynamic flags
-    cbusMsg[d1+PAR_FLAGS-1] = getParFlags();
+    // cbusMsg[d1+PAR_FLAGS-1] = getParFlags();   // Would be past end of CAN buffer
     
     cbusSendMsg(0, cbusMsg);
     
