@@ -250,7 +250,7 @@ rom near EventTable * eventTable = (rom near EventTable*)AT_EVENTS;
 #ifdef PRODUCED_EVENTS
 #pragma udata large_event_hash
 // the lookup table to find an EventTable entry by Happening
-BYTE happening2Event[NUM_HAPPENINGS];    // MIO: 64+8 bytes  EMIO: 96+8 bytes
+BYTE happening2Event[NUM_HAPPENINGS];    // MIO: 64+8 bytes  XIO: 96+8 bytes
 #endif
 // The hashtable to find the EventTable entry by Event.
 // This RAM hash table will probably be more than 256 bytes. With C18 this leads to
