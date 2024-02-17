@@ -28,8 +28,14 @@
 /* 
  * File:   timedResponse.h
  * Author: Ian
+ * 
+ * TimedResponse records that a sequence of CBUS messages are to be sent at
+ * a slow rate.
+ * 
  *
  * Created on 08 December 2021, 16:19
+ * Updates:
+ *    Nov 2022    ih     Changed to support the requirements of MERGLCB
  */
 
 #ifndef TIMEDRESPONSE_H

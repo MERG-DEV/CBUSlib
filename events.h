@@ -160,7 +160,11 @@ extern BOOL validStart(unsigned char tableIndex);
 extern void checkRemoveTableEntry(unsigned char tableIndex);
 extern BYTE tableIndexToEvtIdx(BYTE tableIndex);
 
+#ifdef __XC8
+const EventTable * eventTable;
+#else
 extern rom near EventTable * eventTable;
+#endif
 extern Event producedEvent;
 extern BYTE evs[EVperEVT];
 

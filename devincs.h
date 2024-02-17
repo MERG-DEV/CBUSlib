@@ -52,7 +52,7 @@ extern "C" {
 #endif
 
 // Include the appropriate definition file for the processor that has been selected for this project
-#ifdef __XC8__
+#ifdef __XC8
 #include <xc.h>
 #else
 #include <p18cxxx.h>

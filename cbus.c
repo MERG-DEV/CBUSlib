@@ -61,7 +61,7 @@
 
 WORD    nodeID;
 BYTE    cbusMsg[sizeof(CanPacket)]; // Global buffer for fast access to CBUS packets - do NOT use in ISRs as would not be re-entrant
-#ifndef __XC8__
+#ifndef __XC8
 //#pragma code APP
 #endif
 
@@ -230,7 +230,7 @@ BOOL cbusSendEventWithData( BYTE cbusNum, WORD eventNode, WORD eventNum, BOOL on
         msg[d0] |= 0x01;        // Off event
 
     if (datalen > 0)
-        msg[d0] |= (datalen << 5);   // Opcode for event + data
+        msg[d0] |= (unsigned char)(datalen << 5U);   // Opcode for event + data
 
     msg[d3] = eventNum>>8;
     msg[d4] = eventNum & 0xFF;
@@ -291,7 +291,7 @@ BOOL cbusSendMsg(BYTE cbusNum, BYTE *msg)
 {
     #if defined(CBUS_OVER_CAN)
         if ((cbusNum == CBUS_OVER_CAN) || (cbusNum == 0xFF) )
-            return canSend( msg, (msg[d0] >> 5)+1);	// data length from opcode
+            return canSend( msg, (unsigned char)((unsigned char)(msg[d0] >> 5U)+1U));	// data length from opcode
 
     #endif
 
