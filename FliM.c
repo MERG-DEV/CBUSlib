@@ -667,11 +667,7 @@ void doRqnp(void)
     for (copyCounter = (unsigned char)d1; copyCounter <= (unsigned char)d7; copyCounter++) 
     {
         cbusMsg[copyCounter] = paramptr->bytes[(unsigned char)(copyCounter-d1)];
-    }
-    
-    // update the dynamic flags
-    cbusMsg[(unsigned char)d1+PAR_FLAGS-1U] = getParFlags();
-    
+    }  
     cbusSendMsg(0, cbusMsg);
     
 } // doRqnp

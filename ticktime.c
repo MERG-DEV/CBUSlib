@@ -111,10 +111,12 @@ void initTicker(unsigned char priority)
 
 #if defined(__18CXX) || defined (__XC8)
     TMR_CON = (unsigned char)(0b00000000 | divider);     // Enable internal clock, prescaler on and set prescaler value
-    TMR_IP = priority;
-    TMR_IF = 0;
-    TMR_IE = 1;
-    TMR_ON = 1;
+    TMR_H = 0;          // clear the H buffer
+    TMR_L = 0;          // write the L counter and load the H counter from buffer
+    TMR_IP = priority;  // set interrupt priority
+    TMR_IF = 0;         // clear the flag
+    TMR_IE = 1;         // enable interrupts
+    TMR_ON = 1;         // start it running
 
     timerExtension1 = 0;
     timerExtension2 = 0;
@@ -166,21 +168,21 @@ DWORD tickGet(void)
     BYTE IntFlag1;
     BYTE IntFlag2;
     
-    /* copy the byte extension */
+    /* zero the byte extension for now*/
     currentTime.byte.b2 = 0;
     currentTime.byte.b3 = 0;
-    /* disable the timer to prevent roll over of the lower 16 bits while before/after reading of the extension */
+    /* disable the timer interrupt to prevent roll over of the lower 16 bits while before/after reading of the extension */
     TMR_IE = 0;
 #if 1
     do
     {
         IntFlag1 = TMR_IF;
         currentTime.byte.b0 = TMR_L;
-        currentTime.byte.b1 = TMR_H;
+        currentTime.byte.b1 = TMR_H;    // PIC latched the H register whist reading the L register. Safe 2 byte read.
         IntFlag2 = TMR_IF;
-    } while(IntFlag1 != IntFlag2);
+    } while(IntFlag1 != IntFlag2);  // verify that a rollover didn't happen during getting the counter
 
-    if( IntFlag1 > 0 )
+    if( IntFlag1 > 0 )          // if a rollover did happen then handle it here instead of in ISR
     {
         TMR_IF = 0;
         timerExtension1++;
@@ -221,7 +223,7 @@ DWORD tickGet(void)
     currentTime.byte.b2 += timerExtension1;
     currentTime.byte.b3 += timerExtension2;
     
-    /* enable the timer*/
+    /* re-enable the timer interrupt */
     TMR_IE = 1;
     
 #elif defined(__dsPIC30F__) || defined(__dsPIC33F__) || defined(__PIC24F__) || defined(__PIC24FK__) || defined(__PIC24H__) || defined(__PIC32MX__)
@@ -246,14 +248,11 @@ void tickISR(void)
     //check to see if the symbol timer overflowed
     if(TMR_IF)
     {
-        if(TMR_IE)
-        {
-            /* there was a timer overflow */
-            TMR_IF = 0;
-            timerExtension1++;
-            if(timerExtension1 == 0) {
-                timerExtension2++;
-            }
+        /* there was a timer overflow */
+        TMR_IF = 0;
+        timerExtension1++;
+        if(timerExtension1 == 0) {
+            timerExtension2++;
         }
     }
     return;

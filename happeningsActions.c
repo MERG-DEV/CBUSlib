@@ -177,8 +177,6 @@ void deleteHappeningRange(HAPPENING_T action, unsigned char number) {
  * A request event is used to elicit a status response from a producer when it is required to
  * know the ?state? of the producer without producing an ON or OFF event and to trigger an
  * event from a "combi" node.
- * Only accessible in Setup mode.
- * Does not support default events i.e. those not stored in the event table.
  * @param nodeNumber
  * @param eventNumber
  */
