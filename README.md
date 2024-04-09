@@ -13,6 +13,8 @@ are added to the application code to build the firmware for a module.
 
 See CANMIO knowledgebase page for full details of changes and bug fixes 
 
+- Tweaks to support XC8 compiler as well as C18
+- Fixes to parameter returns
 
 ## Usage ##
 To use this library:
@@ -31,6 +33,7 @@ For examples of usage see:
 
 ## To Dos ##
 
-- XC8 support.
+- XC8 support in progress.
+- Q series PIC support
 - Improvements to documentation to explain the functionality of each file and their requirements when adding to a project.
 
