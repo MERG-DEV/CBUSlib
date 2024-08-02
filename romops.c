@@ -339,8 +339,6 @@ void writeFlashImage(BYTE * addr, BYTE data)
  * @param flashData the data byte to be written
  */
 void writeFlashByte( BYTE * flashAddr, BYTE flashData ) 
-
-
 {
     writeFlashImage( flashAddr, flashData );    // Put data into memory image, if necessary flush image to flash first
     flushFlashImage();                          // Flush any changes
@@ -352,8 +350,6 @@ void writeFlashByte( BYTE * flashAddr, BYTE flashData )
  * @param flashData the data word to be written
  */
 void setFlashWord( WORD * flashAddr, WORD flashData ) 
-
-
 {
      writeFlashImage( (BYTE*)flashAddr, (BYTE)(flashData & 0x00FF) );    // Put LS byte into memory image, if necessary flush image to flash first
      writeFlashImage( ((BYTE*)flashAddr)+1, (BYTE)(flashData >> 8) );      // Repeat for MSByte

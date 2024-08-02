@@ -920,8 +920,11 @@ void doReqev(WORD nodeNumber, WORD eventNumber, BYTE evNum)
         evVal = getEv(tableIndex, evNum);
     }
     if (evVal >= 0) {
+        cbusMsg[d0] = OPC_EVANS;
+        cbusMsg[d1] = nodeNumber >> 8;
+        cbusMsg[d2] = nodeNumber & 0xFF;
         cbusMsg[d6] = (unsigned char)evVal;
-        cbusSendOpcMyNN( 0, OPC_EVANS, cbusMsg);
+        cbusSendMsg( 0, cbusMsg);
         return;
     }
     cbusMsg[d3] = (unsigned char)(-evVal);   // a negative value is the error code
