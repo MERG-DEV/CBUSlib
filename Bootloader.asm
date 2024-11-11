@@ -6,6 +6,7 @@
 ; 1/2/17   Pete Brownlow - Add conditional assembly to build for k or F series PIC
 ;                        -  set clock rate defaults for PIC type, overridable by assembler def in project options
 ;                       - Initialise BRGCON1 before jumping to applcation, so that application code need have no clock speed hard coded    
+; 11/11/24 Ian Hogg - added the Bootloader version string    
 ; 
 ;*************************************************************** * * * * * * * * * * * * * * ;*
 ;*	CBUS bootloader
@@ -829,3 +830,18 @@ _CANSendBoot
 	bra		_CANSendMessage
     
 	END
+
+bl-version
+	db  'B'
+	db  'L'
+	db  '_'
+	db  'V'
+	db  'E'
+	db  'R'
+	db  'S'
+	db  'I'
+	db  'O'
+	db  'N'
+	db  '='
+	db  1	    ; 1 for the Mike Bolton bootloader
+	db  2	    ; Version of the bootloader
